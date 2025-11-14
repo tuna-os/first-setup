@@ -22,6 +22,11 @@ if [ -n "$3" ]; then
     fi
 fi
 
-adduser --quiet --disabled-password --shell "$SHELL_PATH" --gecos "$2" "$1"
-passwd --stdin "$1"
-usermod -a -G sudo,adm,lpadmin,docker,incus-admin "$1"
+homectl create "$1" \
+    --real-name "$2" \
+    --shell "$SHELL_PATH" \
+    --member-of "sudo,adm,lpadmin,docker,incus-admin" \
+    --uid=1000 \
+    --storage=luks \
+    --luks-discard=yes \
+    --password-change-now

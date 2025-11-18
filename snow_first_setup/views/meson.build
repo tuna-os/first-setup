@@ -16,6 +16,7 @@ sources = [
   'timezone.py',
   'user.py',
   'welcome_user.py',
+  'welcome_install.py',
   'welcome.py',
 ]
 

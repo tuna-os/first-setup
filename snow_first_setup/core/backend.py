@@ -43,6 +43,19 @@ def set_hostname(hostname: str):
 def set_theme(theme: str) -> str|None:
     return run_script("theme", [theme])
 
+def is_live_session() -> bool:
+    """Check if the system is running in live session mode.
+
+    Returns:
+        bool: True if kernel command line contains 'snow-linux.live=1', False otherwise.
+    """
+    try:
+        with open("/proc/cmdline", "r") as f:
+            cmdline = f.read()
+        return "snow-linux.live=1" in cmdline
+    except Exception:
+        return False
+
 def _add_user(username: str, full_name: str, password: str, shell: str = "/usr/bin/bash"):
     return run_script("user", [username, full_name, shell], root=True, input_data=password)
 

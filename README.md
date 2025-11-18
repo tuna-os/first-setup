@@ -71,7 +71,16 @@ Here you can change the install folder (default is /usr/local), for example:
 meson setup --prefix="$(pwd)/install" build
 ```
 
-## Install
+## Modes
+
+first-setup has multiple "modes" for running:
+
+- OEM Mode: sets language, keyboard, timezone
+- Configure Mode: set hostname, creates first user
+- Regular Mode: runs on first login of created user, installs flatpaks, configures user-level things
+- Install mode: when `snow-linux.live=1` is detected in the kernel command line, this triggers install mode.
+
+## Installing first-setup
 
 ### Installing runtime dependencies
 

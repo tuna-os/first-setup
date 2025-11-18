@@ -12,6 +12,7 @@
     <file>gtk/theme.ui</file>
     <file>gtk/welcome.ui</file>
     <file>gtk/welcome-user.ui</file>
+    <file>gtk/welcome-install.ui</file>
     <file>gtk/user.ui</file>
     <file>gtk/hostname.ui</file>
     <file>gtk/language.ui</file>

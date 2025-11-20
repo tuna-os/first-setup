@@ -22,6 +22,7 @@ bootc \
     to-disk \
     --composefs-backend \
     --filesystem "$2" \
+    --source-imgref docker://"$1" \
     --target-imgref "$1" \
     --wipe \
     --bootloader systemd \

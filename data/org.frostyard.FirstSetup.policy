@@ -71,4 +71,15 @@
     <annotate key="org.freedesktop.policykit.exec.path">/usr/share/org.frostyard.FirstSetup/snow_first_setup/scripts/remove-first-setup-user</annotate>
   </action>
 
+  <action id="org.frostyard.FirstSetup.scripts.installToDisk">
+    <description>FirstSetup disk installation script</description>
+    <message>Install the selected system image to the chosen disk</message>
+    <defaults>
+      <allow_any>no</allow_any>
+      <allow_inactive>no</allow_inactive>
+      <allow_active>auth_admin</allow_active>
+    </defaults>
+    <annotate key="org.freedesktop.policykit.exec.path">/usr/share/org.frostyard.FirstSetup/snow_first_setup/scripts/install-to-disk</annotate>
+  </action>
+
 </policyconfig>

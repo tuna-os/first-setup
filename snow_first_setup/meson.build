@@ -37,7 +37,8 @@ snow_first_setup_sources = [
   'main.py',
   'window.py',
   'dialog.py',
-  'apps.json'
+  'apps.json',
+  'images.json'
 ]
 
 install_data(snow_first_setup_sources, install_dir: moduledir)

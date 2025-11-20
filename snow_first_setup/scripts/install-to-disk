@@ -18,11 +18,6 @@ if ! podman image exists "$1"; then
     exit 7
 fi
 
-# today we support ext4 and btrfs only
-if ! grep -q "^$2$" /proc/filesystems; then
-    echo "filesystem type '$2' is not supported"
-    exit 8
-fi
 
 
 if ! [ -b "$3" ]; then

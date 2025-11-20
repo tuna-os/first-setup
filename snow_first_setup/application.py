@@ -138,36 +138,39 @@ class FirstSetupApplication(Adw.Application):
         """
         # live session detection
         self.install_mode = False
+        configure_system_mode = False
+
         if backend.is_live_session():
             self.install_mode = True
 
         if self.force_install_mode:
             self.install_mode = True
 
-        all_groups = [g.gr_name for g in grp.getgrall()]
-        configure_system_mode = False
-        # if the running user is in the snow-first-setup group, enable configure system mode
-        # this is used to run first-setup automatically on first boot
-        # then disabled later so it won't run again
-        if "snow-first-setup" in all_groups and os.getlogin() in grp.getgrnam("snow-first-setup").gr_mem:
-            configure_system_mode = True
-            # add oem mode by default
-            self.oem_mode = True
-
-        if self.force_configure:
-            configure_system_mode = True
-        elif self.force_regular:
-            configure_system_mode = False
-
-        if configure_system_mode:
-            print("Running in configure system mode.")
-            backend.disable_lockscreen()
-        elif self.install_mode:
+        if  self.install_mode:
             print("Running in installation mode.")
             backend.disable_lockscreen()
         else:
-            print("Running in regular mode.")
-            backend.setup_system_deferred()
+            all_groups = [g.gr_name for g in grp.getgrall()]
+            configure_system_mode = False
+            # if the running user is in the snow-first-setup group, enable configure system mode
+            # this is used to run first-setup automatically on first boot
+            # then disabled later so it won't run again
+            if "snow-first-setup" in all_groups and os.getlogin() in grp.getgrnam("snow-first-setup").gr_mem:
+                configure_system_mode = True
+                # add oem mode by default
+                self.oem_mode = True
+
+            if self.force_configure:
+                configure_system_mode = True
+            elif self.force_regular:
+                configure_system_mode = False
+
+            if configure_system_mode:
+                print("Running in configure system mode.")
+                backend.disable_lockscreen()
+            else:
+                print("Running in regular mode.")
+                backend.setup_system_deferred()
 
         provider = Gtk.CssProvider()
         provider.load_from_resource("/org/frostyard/FirstSetup/style.css")

@@ -13,6 +13,9 @@
     <file>gtk/welcome.ui</file>
     <file>gtk/welcome-user.ui</file>
     <file>gtk/welcome-install.ui</file>
+    <file>gtk/install-disk.ui</file>
+    <file>gtk/install-progress.ui</file>
+    <file>gtk/install-confirm.ui</file>
     <file>gtk/user.ui</file>
     <file>gtk/hostname.ui</file>
     <file>gtk/language.ui</file>

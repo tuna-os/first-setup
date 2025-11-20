@@ -1,0 +1,127 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<interface>
+  <requires lib="gtk" version="4.0"/>
+  <template class="VanillaInstallConfirm" parent="AdwBin">
+    <child>
+      <object class="AdwClamp">
+        <property name="maximum-size">720</property>
+        <property name="width-request">720</property>
+        <child>
+          <object class="GtkBox">
+            <property name="orientation">1</property>
+            <property name="spacing">12</property>
+            <child>
+              <object class="GtkLabel" id="title_label">
+                <property name="label" translatable="yes">Confirm installation</property>
+                <style>
+                  <class name="title"/>
+                </style>
+              </object>
+            </child>
+
+            <child>
+              <object class="GtkLabel" id="summary_label">
+                <property name="label" translatable="yes">Review the choices below before starting the installation.</property>
+                <property name="wrap">true</property>
+              </object>
+            </child>
+
+            <child>
+              <object class="GtkGrid">
+                <property name="column-spacing">12</property>
+                <property name="row-spacing">6</property>
+                <child>
+                  <object class="GtkLabel">
+                    <property name="label" translatable="yes">Target device:</property>
+                    <property name="halign">start</property>
+                    <layout>
+                      <property name="column">0</property>
+                      <property name="row">0</property>
+                    </layout>
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkLabel" id="device_label">
+                    <property name="label">/dev/sdX</property>
+                    <property name="halign">start</property>
+                    <property name="wrap">true</property>
+                    <layout>
+                      <property name="column">1</property>
+                      <property name="row">0</property>
+                    </layout>
+                  </object>
+                </child>
+
+                <child>
+                  <object class="GtkLabel">
+                    <property name="label" translatable="yes">Filesystem:</property>
+                    <property name="halign">start</property>
+                    <layout>
+                      <property name="column">0</property>
+                      <property name="row">1</property>
+                    </layout>
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkLabel" id="fs_label">
+                    <property name="label">ext4</property>
+                    <property name="halign">start</property>
+                    <layout>
+                      <property name="column">1</property>
+                      <property name="row">1</property>
+                    </layout>
+                  </object>
+                </child>
+
+                <child>
+                  <object class="GtkLabel">
+                    <property name="label" translatable="yes">Installer image:</property>
+                    <property name="halign">start</property>
+                    <layout>
+                      <property name="column">0</property>
+                      <property name="row">2</property>
+                    </layout>
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkComboBoxText" id="image_combo">
+                    <property name="hexpand">true</property>
+                    <layout>
+                      <property name="column">1</property>
+                      <property name="row">2</property>
+                    </layout>
+                  </object>
+                </child>
+
+              </object>
+            </child>
+
+            <child>
+              <object class="GtkCheckButton" id="confirm_checkbox">
+                <property name="label" translatable="yes">I understand this will erase all data on the selected disk</property>
+              </object>
+            </child>
+
+            <child>
+              <object class="GtkLabel" id="hint_label">
+                <property name="label" translatable="yes">After you confirm, the installer will run and overwrite the selected disk.</property>
+                <property name="wrap">true</property>
+              </object>
+            </child>
+
+            <child>
+              <object class="GtkButton" id="cancel_button">
+                <property name="label" translatable="yes">Cancel Installation</property>
+                <property name="halign">start</property>
+                <style>
+                  <class name="destructive-action"/>
+                </style>
+              </object>
+            </child>
+
+          </object>
+        </child>
+      </object>
+    </child>
+  </template>
+</interface>

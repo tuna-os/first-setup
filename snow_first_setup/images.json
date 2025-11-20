@@ -1,0 +1,16 @@
+{
+    "images": [
+    {
+        "snow": {
+            "target": "ghcr.io/snowlinux/snow:latest",
+            "description": "Bootc enabled Debian Linux",
+            "display_name": "Snow Linux"
+        },
+        "snowfield": {
+            "target": "ghcr.io/snowlinux/snowfield:latest",
+            "description": "Snow Linux with Surface hardware support",
+            "display_name": "Snowfield Linux"
+        }
+    }
+]
+}

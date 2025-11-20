@@ -135,18 +135,32 @@ class VanillaWindow(Adw.ApplicationWindow):
             from snow_first_setup.views.welcome_install import VanillaWelcomeInstall
             from snow_first_setup.views.language import VanillaLanguage
             from snow_first_setup.views.keyboard import VanillaKeyboard
-            from snow_first_setup.views.timezone import VanillaTimezone
+            from snow_first_setup.views.install_disk import VanillaInstallDisk
+            from snow_first_setup.views.install_confirm import VanillaInstallConfirm
+            from snow_first_setup.views.install_progress import VanillaInstallProgress
+            from snow_first_setup.views.done import VanillaDone
+
             self.__view_welcome = VanillaWelcomeInstall(self)
             self.__view_welcome.no_next_button = True
             self.__view_welcome.no_back_button = True
             self.__view_language = VanillaLanguage(self)
             self.__view_language.no_back_button = True
             self.__view_keyboard = VanillaKeyboard(self)
-            self.__view_timezone = VanillaTimezone(self)
+            self.__view_installdisk = VanillaInstallDisk(self)
+            self.__view_installconfirm = VanillaInstallConfirm(self)
+
             self.pages.append(self.__view_welcome)
             self.pages.append(self.__view_language)
             self.pages.append(self.__view_keyboard)
-            self.pages.append(self.__view_timezone)
+            self.pages.append(self.__view_installdisk)
+            self.__view_installprogress = VanillaInstallProgress(self)
+            self.__view_installprogress.no_back_button = True
+            self.__view_installdone = VanillaDone(self)
+            self.__view_installdone.no_next_button = True
+            self.pages.append(self.__view_installconfirm)
+            self.pages.append(self.__view_installprogress)
+            self.pages.append(self.__view_installdone)
+
 
         else:
             from snow_first_setup.views.welcome_user import VanillaWelcomeUser

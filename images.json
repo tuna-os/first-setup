@@ -1,0 +1,16 @@
+{
+    "images": [
+    {
+        "snow": {
+            "target": "ghcr.io/snowlinux/snow:latest",
+            "description": "Debian Linux + bootc",
+            "display_name": "Snow Linux"
+        },
+        "snowfield": {
+            "target": "ghcr.io/snowlinux/snowfield:latest",
+            "description": "Snow + Surface hardware support",
+            "display_name": "Snowfield Linux"
+        }
+    }
+]
+}

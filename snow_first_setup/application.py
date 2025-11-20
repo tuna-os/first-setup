@@ -85,6 +85,14 @@ class FirstSetupApplication(Adw.Application):
             None,
         )
         self.add_main_option(
+            "force-installation-mode",
+            ord("i"),
+            GLib.OptionFlags.NONE,
+            GLib.OptionArg.NONE,
+            _("Installation mode."),
+            None,
+        )
+        self.add_main_option(
             "force-regular-mode",
             ord("r"),
             GLib.OptionFlags.NONE,
@@ -114,6 +122,8 @@ class FirstSetupApplication(Adw.Application):
         self.force_configure = bool(options.lookup_value("force-configure-mode"))
         self.force_regular = bool(options.lookup_value("force-regular-mode"))
         self.oem_mode = bool(options.lookup_value("oem-mode"))
+        self.force_install_mode = bool(options.lookup_value("force-installation-mode"))
+
 
         backend.set_dry_run(self.dry_run)
 
@@ -126,8 +136,19 @@ class FirstSetupApplication(Adw.Application):
         We raise the application's main window, creating it if
         necessary.
         """
+        # live session detection
+        self.install_mode = False
+        if backend.is_live_session():
+            self.install_mode = True
+
+        if self.force_install_mode:
+            self.install_mode = True
+
         all_groups = [g.gr_name for g in grp.getgrall()]
         configure_system_mode = False
+        # if the running user is in the snow-first-setup group, enable configure system mode
+        # this is used to run first-setup automatically on first boot
+        # then disabled later so it won't run again
         if "snow-first-setup" in all_groups and os.getlogin() in grp.getgrnam("snow-first-setup").gr_mem:
             configure_system_mode = True
             # add oem mode by default
@@ -140,6 +161,9 @@ class FirstSetupApplication(Adw.Application):
 
         if configure_system_mode:
             print("Running in configure system mode.")
+            backend.disable_lockscreen()
+        elif self.install_mode:
+            print("Running in installation mode.")
             backend.disable_lockscreen()
         else:
             print("Running in regular mode.")
@@ -159,6 +183,7 @@ class FirstSetupApplication(Adw.Application):
                 moduledir=self.moduledir,
                 configure_system_mode=configure_system_mode,
                 oem_mode=self.oem_mode,
+                install_mode=self.install_mode,
             )
         win.present()
 

@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<interface>
+  <requires lib="gtk" version="4.0"/>
+  <template class="VanillaInstallDisk" parent="AdwBin">
+    <child>
+      <object class="AdwClamp">
+        <property name="maximum-size">720</property>
+        <property name="width-request">720</property>
+        <child>
+          <object class="GtkBox">
+            <property name="orientation">1</property>
+            <property name="spacing">12</property>
+            <child>
+              <object class="GtkLabel" id="title_label">
+                <property name="label" translatable="yes">Select the target disk</property>
+                <property name="wrap">true</property>
+                <property name="wrap-mode">2</property>
+                <style>
+                  <class name="title"/>
+                </style>
+              </object>
+            </child>
+            <child>
+              <object class="GtkLabel" id="subtitle_label">
+                <property name="label" translatable="yes">Choose the physical disk where Vanilla OS should be installed. All data on the selected disk will be erased.</property>
+                <property name="wrap">true</property>
+                <property name="wrap-mode">2</property>
+              </object>
+            </child>
+
+            <child>
+              <object class="GtkBox">
+                <property name="orientation">1</property>
+                <property name="spacing">6</property>
+                <child>
+                  <object class="AdwToolbarView">
+                    <property name="top-bar-style">flat</property>
+                    <child type="top">
+                      <object class="AdwHeaderBar"/>
+                    </child>
+                    <property name="content">
+                      <object class="AdwPreferencesGroup" id="disks_group"/>
+                    </property>
+                  </object>
+                </child>
+
+                <child>
+                  <object class="GtkBox">
+                    <property name="orientation">0</property>
+                    <property name="spacing">8</property>
+                    <child>
+                      <object class="GtkLabel">
+                        <property name="label" translatable="yes">Filesystem:</property>
+                        <property name="halign">start</property>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkComboBoxText" id="fs_combo">
+                        <items>
+                          <item translatable="yes">ext4</item>
+                          <item translatable="yes">btrfs</item>
+                        </items>
+                      </object>
+                    </child>
+                  </object>
+                </child>
+
+              </object>
+            </child>
+
+            <child>
+              <object class="GtkLabel" id="no_disks_label">
+                <property name="label" translatable="yes">No removable disks were found. If you expect a disk to appear, ensure it is connected and try again.</property>
+                <property name="visible">false</property>
+                <property name="wrap">true</property>
+              </object>
+            </child>
+
+          </object>
+        </child>
+      </object>
+    </child>
+  </template>
+</interface>

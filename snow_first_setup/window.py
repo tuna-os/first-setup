@@ -42,14 +42,15 @@ class VanillaWindow(Adw.ApplicationWindow):
     pages = []
     __current_page_index = 0
 
-    def __init__(self, moduledir: str, configure_system_mode: bool, oem_mode: bool = False, **kwargs):
+    def __init__(self, moduledir: str, configure_system_mode: bool, oem_mode: bool = False, install_mode: bool = False, **kwargs):
         super().__init__(**kwargs)
 
         self.moduledir = moduledir
         self.configure_system_mode = configure_system_mode
         self.oem_mode = oem_mode
+        self.install_mode = install_mode
 
-        self.__build_ui(configure_system_mode)
+        self.__build_ui(configure_system_mode, install_mode)
         self.__connect_signals()
 
         backend.subscribe_errors(self.__error_received)
@@ -93,7 +94,7 @@ class VanillaWindow(Adw.ApplicationWindow):
         self.btn_next.connect("clicked", self.__on_btn_next_clicked)
         return
 
-    def __build_ui(self, configure_system_mode: bool):
+    def __build_ui(self, configure_system_mode: bool, install_mode: bool):
 
         if configure_system_mode:
             from snow_first_setup.views.welcome import VanillaWelcome
@@ -129,6 +130,38 @@ class VanillaWindow(Adw.ApplicationWindow):
             self.pages.append(self.__view_hostname)
             self.pages.append(self.__view_user)
             self.pages.append(self.__view_logout)
+        elif install_mode:
+            print("Building install mode UI.")
+            from snow_first_setup.views.welcome_install import VanillaWelcomeInstall
+            from snow_first_setup.views.language import VanillaLanguage
+            from snow_first_setup.views.keyboard import VanillaKeyboard
+            from snow_first_setup.views.install_disk import VanillaInstallDisk
+            from snow_first_setup.views.install_confirm import VanillaInstallConfirm
+            from snow_first_setup.views.install_progress import VanillaInstallProgress
+            from snow_first_setup.views.done import VanillaDone
+
+            self.__view_welcome = VanillaWelcomeInstall(self)
+            self.__view_welcome.no_next_button = True
+            self.__view_welcome.no_back_button = True
+            self.__view_language = VanillaLanguage(self)
+            self.__view_language.no_back_button = True
+            self.__view_keyboard = VanillaKeyboard(self)
+            self.__view_installdisk = VanillaInstallDisk(self)
+            self.__view_installconfirm = VanillaInstallConfirm(self)
+
+            self.pages.append(self.__view_welcome)
+            self.pages.append(self.__view_language)
+            self.pages.append(self.__view_keyboard)
+            self.pages.append(self.__view_installdisk)
+            self.__view_installprogress = VanillaInstallProgress(self)
+            self.__view_installprogress.no_back_button = True
+            self.__view_installdone = VanillaDone(self)
+            self.__view_installdone.no_next_button = True
+            self.pages.append(self.__view_installconfirm)
+            self.pages.append(self.__view_installprogress)
+            self.pages.append(self.__view_installdone)
+
+
         else:
             from snow_first_setup.views.welcome_user import VanillaWelcomeUser
             from snow_first_setup.views.conn_check import VanillaConnCheck

@@ -1,0 +1,50 @@
+#!/bin/bash
+if [ -z "$1" ] || [ -z "$2" ] || [ -z "$3" ]; then
+    echo "usage:"
+    echo "install-to-disk <image> <filesystem> <device>"
+    exit 5
+fi
+
+if ! [ "$UID" == "0" ]; then
+    echo "this script must be run with super user privileges"
+    exit 6
+fi
+
+# do some sanity checking.  $1 should be a valid container image
+# $2 should be a valid filesystem type
+# $3 should be a valid device
+if ! podman image exists "$1"; then
+    echo "container image '$1' does not exist"
+    exit 7
+fi
+
+# today we support ext4 and btrfs only
+if ! grep -q "^$2$" /proc/filesystems; then
+    echo "filesystem type '$2' is not supported"
+    exit 8
+fi
+
+
+if ! [ -b "$3" ]; then
+    echo "device '$3' is not a valid block device"
+    exit 9
+fi
+
+
+podman run \
+        --rm \
+        --privileged \
+        --pid=host \
+        -it \
+        -v /etc/containers:/etc/containers \
+        -v /var/lib/containers:/var/lib/containers \
+        -v /dev:/dev \
+        -e RUST_LOG=debug \
+        "$1" bootc \
+            --composefs-backend \
+            --filesystem "$2" \
+            --source-imgref docker://"$1" \
+            --target-imgref "$1" \
+            --wipe \
+            --bootloader systemd \
+            "$3"

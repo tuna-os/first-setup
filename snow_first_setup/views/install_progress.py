@@ -79,6 +79,11 @@ class VanillaInstallProgress(Adw.Bin):
 
         GLib.idle_add(self.detail_label.set_text, _("Writing image to disk…"))
         success = backend.run_script("install-to-disk", [image, fs, device], root=True)
+
+        if success and "snowfield" in image:
+            print("[DEBUG] __run_install: Snowfield image selected, importing Surface Linux secure boot key")
+            backend.run_script("enroll-key", ["/usr/share/linux-surface-secureboot/surface.cer"], root=True)
+        
         GLib.idle_add(self.__mark_finished, success, _("Installation complete." if success else _("Installation failed.")))
 
     def __mark_finished(self, success: bool, message: str):

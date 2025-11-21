@@ -138,7 +138,7 @@ class VanillaWindow(Adw.ApplicationWindow):
             from snow_first_setup.views.install_disk import VanillaInstallDisk
             from snow_first_setup.views.install_confirm import VanillaInstallConfirm
             from snow_first_setup.views.install_progress import VanillaInstallProgress
-            from snow_first_setup.views.done import VanillaDone
+            from snow_first_setup.views.install_done import VanillaInstallDone
 
             self.__view_welcome = VanillaWelcomeInstall(self)
             self.__view_welcome.no_next_button = True
@@ -155,7 +155,7 @@ class VanillaWindow(Adw.ApplicationWindow):
             self.pages.append(self.__view_installdisk)
             self.__view_installprogress = VanillaInstallProgress(self)
             self.__view_installprogress.no_back_button = True
-            self.__view_installdone = VanillaDone(self)
+            self.__view_installdone = VanillaInstallDone(self)
             self.__view_installdone.no_next_button = True
             self.pages.append(self.__view_installconfirm)
             self.pages.append(self.__view_installprogress)

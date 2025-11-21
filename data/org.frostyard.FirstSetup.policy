@@ -93,4 +93,15 @@
     <annotate key="org.freedesktop.policykit.exec.path">/usr/share/org.frostyard.FirstSetup/snow_first_setup/scripts/enroll-key</annotate>
   </action>
 
+  <action id="org.frostyard.FirstSetup.scripts.flatpakSystem">
+    <description>FirstSetup system flatpak installation script</description>
+    <message>Install system flatpak applications</message>
+    <defaults>
+      <allow_any>no</allow_any>
+      <allow_inactive>no</allow_inactive>
+      <allow_active>auth_admin</allow_active>
+    </defaults>
+    <annotate key="org.freedesktop.policykit.exec.path">/usr/share/org.frostyard.FirstSetup/snow_first_setup/scripts/flatpak-system</annotate>
+  </action>
+
 </policyconfig>

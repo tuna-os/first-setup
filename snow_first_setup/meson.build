@@ -38,6 +38,7 @@ snow_first_setup_sources = [
   'window.py',
   'dialog.py',
   'apps.json',
+  'core.json',
   'images.json'
 ]
 

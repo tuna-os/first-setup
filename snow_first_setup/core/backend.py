@@ -86,6 +86,9 @@ def _setup_system():
 def _install_flatpak(id: str):
     return run_script("flatpak", [id])
 
+def _install_flatpak_system(id: str):
+    return run_script("flatpak-system", [id], root=True)
+
 
 def run_script(name: str, args: list[str], root: bool = False, input_data: str = None) -> bool:
     if dry_run:
@@ -168,6 +171,16 @@ def install_flatpak_deferred(id: str, name: str):
     action_info = {"app_id": id, "app_name": name}
     def install_flatpak():
         _run_function_with_progress(action_id, uid, action_info, _install_flatpak, id)
+    _deferred_actions[uid] = {"action_id": action_id, "callback": install_flatpak, "info": action_info}
+    report_progress(action_id, uid, ProgressState.Initialized, action_info)
+
+def install_flatpak_system_deferred(id: str, name: str):
+    global _deferred_actions
+    action_id = "install_flatpak"
+    uid = action_id+id
+    action_info = {"app_id": id, "app_name": name}
+    def install_flatpak():
+        _run_function_with_progress(action_id, uid, action_info, _install_flatpak_system, id)
     _deferred_actions[uid] = {"action_id": action_id, "callback": install_flatpak, "info": action_info}
     report_progress(action_id, uid, ProgressState.Initialized, action_info)
 

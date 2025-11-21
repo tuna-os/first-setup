@@ -101,8 +101,7 @@ class VanillaLayoutApplications(Adw.Bin):
     __gtype_name__ = "VanillaLayoutApplications"
 
     bundles_list = Gtk.Template.Child()
-    core_switch = Gtk.Template.Child()
-    core_button = Gtk.Template.Child()
+
     browsers_switch = Gtk.Template.Child()
     browsers_button = Gtk.Template.Child()
     utilities_switch = Gtk.Template.Child()
@@ -122,12 +121,10 @@ class VanillaLayoutApplications(Adw.Bin):
         with open(apps_file_path) as file:
             self.__apps = json.load(file)
 
-        self.core_switch.connect("state-set", self.__on_core_switch_state_change)
         self.browsers_switch.connect("state-set", self.__on_browsers_switch_state_change)
         self.utilities_switch.connect("state-set", self.__on_utilities_switch_state_change)
         self.office_switch.connect("state-set", self.__on_office_switch_state_change)
 
-        self.core_button.connect("clicked", self.__on_customize_button_clicked, "core")
         self.browsers_button.connect("clicked", self.__on_customize_button_clicked, "browsers")
         self.utilities_button.connect("clicked", self.__on_customize_button_clicked, "utilities")
         self.office_button.connect("clicked", self.__on_customize_button_clicked, "office")
@@ -144,8 +141,6 @@ class VanillaLayoutApplications(Adw.Bin):
 
     def finish(self):
         enabled_categories = []
-        if self.core_switch.get_active():
-            enabled_categories.append("core")
         if self.browsers_switch.get_active():
             enabled_categories.append("browsers")
         if self.utilities_switch.get_active():
@@ -162,9 +157,6 @@ class VanillaLayoutApplications(Adw.Bin):
                     backend.install_flatpak_deferred(app_id, app_name)
         return True
 
-
-    def __on_core_switch_state_change(self, widget, state):
-        self.core_button.set_sensitive(state)
 
     def __on_browsers_switch_state_change(self, widget, state):
         self.browsers_button.set_sensitive(state)

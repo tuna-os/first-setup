@@ -112,7 +112,7 @@ def run_script(name: str, args: list[str], root: bool = False, input_data: str =
 
     result = ""
     try:
-        result, _ = process.communicate(input=input_data, timeout=300)
+        result, _ = process.communicate(input=input_data)
     except subprocess.TimeoutExpired:
         process.kill()
         result, _ = process.communicate()

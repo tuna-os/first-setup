@@ -30,7 +30,6 @@ class VanillaInstallConfirm(Adw.Bin):
 
         # connect signals to update readiness
         try:
-            self.image_combo.connect("changed", self.__on_input_changed)
             self.confirm_checkbox.connect("toggled", self.__on_input_changed)
             self.cancel_button.connect("clicked", self.__on_cancel_clicked)
         except Exception:
@@ -38,6 +37,12 @@ class VanillaInstallConfirm(Adw.Bin):
 
         # load images into combo
         self.__load_images()
+        
+        # Connect notify::selected after loading images
+        try:
+            self.image_combo.connect("notify::selected", self.__on_input_changed)
+        except Exception:
+            pass
 
     def set_page_active(self):
         # populate labels from window properties
@@ -74,9 +79,10 @@ class VanillaInstallConfirm(Adw.Bin):
     def __on_input_changed(self, *args):
         # cache values from widgets (this handler runs on the main thread)
         try:
-            display = self.image_combo.get_active_text()
-            print(f"[DEBUG] __on_input_changed: display={display}")
-            if display:
+            selected_idx = self.image_combo.get_selected()
+            if selected_idx != Gtk.INVALID_LIST_POSITION and hasattr(self, "_VanillaInstallConfirm__images_list"):
+                display = self.__images_list[selected_idx]
+                print(f"[DEBUG] __on_input_changed: display={display}")
                 self.__image_text = display.strip()
                 # map display name to target reference if available
                 if hasattr(self, "_VanillaInstallConfirm__image_map") and self.__image_text in self.__image_map:
@@ -220,16 +226,19 @@ class VanillaInstallConfirm(Adw.Bin):
                 if images:
                     break
 
-        # Store image_map BEFORE populating combo so __on_input_changed can access it
+        # Store image_map and images list BEFORE populating combo so __on_input_changed can access it
         self.__image_map = image_map
+        self.__images_list = images
         print(f"[DEBUG] Image map created with {len(image_map)} entries: {list(image_map.keys())}")
 
-        # Populate combo
+        # Populate combo with StringList model for AdwComboRow
         try:
+            string_list = Gtk.StringList()
             for img in images:
-                self.image_combo.append_text(img)
+                string_list.append(img)
+            self.image_combo.set_model(string_list)
             if images:
-                self.image_combo.set_active(0)
+                self.image_combo.set_selected(0)
                 # Manually trigger __on_input_changed to populate __image_target
                 self.__on_input_changed()
         except Exception as e:
@@ -239,7 +248,10 @@ class VanillaInstallConfirm(Adw.Bin):
         # If no images found, add a disabled placeholder
         if not images:
             try:
-                self.image_combo.append_text(_("No images found"))
-                self.image_combo.set_active(0)
+                string_list = Gtk.StringList()
+                string_list.append(_("No images found"))
+                self.image_combo.set_model(string_list)
+                self.image_combo.set_selected(0)
+                self.__images_list = [_("No images found")]
             except Exception:
                 pass

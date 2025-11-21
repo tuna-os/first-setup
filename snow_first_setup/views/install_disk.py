@@ -41,10 +41,14 @@ class VanillaInstallDisk(Adw.Bin):
             return False
         # Store chosen device and filesystem on window for later steps
         self.__window.install_target_device = self.__selected_device
-        # default to ext4 if somehow missing
+        # Get selected filesystem from AdwComboRow
         fs = None
         try:
-            fs = self.fs_combo.get_active_text()
+            selected_idx = self.fs_combo.get_selected()
+            if selected_idx == 0:
+                fs = "ext4"
+            elif selected_idx == 1:
+                fs = "btrfs"
         except Exception:
             fs = None
         if not fs:
@@ -112,8 +116,8 @@ class VanillaInstallDisk(Adw.Bin):
 
         # Ensure filesystem combobox has a default
         try:
-            if self.fs_combo.get_active() == -1:
-                self.fs_combo.set_active(0)
+            if self.fs_combo.get_selected() == Gtk.INVALID_LIST_POSITION:
+                self.fs_combo.set_selected(0)
         except Exception:
             pass
 

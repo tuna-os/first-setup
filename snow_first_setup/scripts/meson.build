@@ -8,6 +8,7 @@ sources = [
   'open-network-settings',
   'theme',
   'flatpak',
+  'flatpak-system',
   'live-keyboard',
   'setup-flatpak-remote',
   'timezone',

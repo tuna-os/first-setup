@@ -104,6 +104,7 @@ class VanillaWindow(Adw.ApplicationWindow):
                 from snow_first_setup.views.timezone import VanillaTimezone
             from snow_first_setup.views.hostname import VanillaHostname
             from snow_first_setup.views.user import VanillaUser
+            from snow_first_setup.views.core_progress import VanillaCoreProgress
             from snow_first_setup.views.logout import VanillaLogout
 
             self.__view_welcome = VanillaWelcome(self)
@@ -119,6 +120,8 @@ class VanillaWindow(Adw.ApplicationWindow):
                 self.__view_hostname = VanillaHostname(self)
                 self.__view_hostname.no_back_button = True
             self.__view_user = VanillaUser(self)
+            self.__view_coreprogress = VanillaCoreProgress(self)
+            self.__view_coreprogress.no_back_button = True
             self.__view_logout = VanillaLogout(self)
             self.__view_logout.no_next_button = True
 
@@ -129,6 +132,7 @@ class VanillaWindow(Adw.ApplicationWindow):
                 self.pages.append(self.__view_timezone)
             self.pages.append(self.__view_hostname)
             self.pages.append(self.__view_user)
+            self.pages.append(self.__view_coreprogress)
             self.pages.append(self.__view_logout)
         elif install_mode:
             print("Building install mode UI.")

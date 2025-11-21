@@ -6,6 +6,7 @@
     <file>gtk/logout.ui</file>
     <file>gtk/done.ui</file>
     <file>gtk/progress.ui</file>
+    <file>gtk/core-progress.ui</file>
     <file>gtk/dialog.ui</file>
 
     <file>gtk/conn-check.ui</file>

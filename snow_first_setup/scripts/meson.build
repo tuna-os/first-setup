@@ -19,6 +19,7 @@ sources = [
   'remove-first-setup-user',
   'remove-autostart-file',
   'install-to-disk',
+  'enroll-key',
 ]
 
 install_data(sources, install_dir: scriptsdir)

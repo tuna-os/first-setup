@@ -24,4 +24,4 @@ fi
 
 adduser --quiet --disabled-password --shell "$SHELL_PATH" --gecos "$2" "$1"
 passwd --stdin "$1"
-usermod -a -G sudo,adm,lpadmin "$1"
+usermod -a -G sudo,adm,lpadmin,docker,incus-admin "$1"

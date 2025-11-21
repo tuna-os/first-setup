@@ -157,6 +157,7 @@ class VanillaWindow(Adw.ApplicationWindow):
             self.__view_installprogress.no_back_button = True
             self.__view_installdone = VanillaInstallDone(self)
             self.__view_installdone.no_next_button = True
+            self.__view_installdone.no_back_button = True
             self.pages.append(self.__view_installconfirm)
             self.pages.append(self.__view_installprogress)
             self.pages.append(self.__view_installdone)

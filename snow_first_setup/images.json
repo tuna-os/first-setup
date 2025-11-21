@@ -3,12 +3,12 @@
     {
         "snow": {
             "target": "ghcr.io/frostyard/snow:latest",
-            "description": "Bootc enabled Debian Linux",
+            "description": "standard",
             "display_name": "Snow Linux"
         },
         "snowfield": {
             "target": "ghcr.io/frostyard/snowfield:latest",
-            "description": "Snow Linux with Surface hardware support",
+            "description": "Surface",
             "display_name": "Snowfield Linux"
         }
     }

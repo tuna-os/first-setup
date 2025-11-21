@@ -5,4 +5,5 @@ if [ -z "$1" ]; then
     exit 5
 fi
 
-mokutil --import "$1"
+mokutil --timeout -1
+echo -e "snowlinux" | mokutil --import "$1"

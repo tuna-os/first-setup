@@ -13,6 +13,10 @@
             "id": "com.mattjakeman.ExtensionManager"
         },
         {
+            "name": "DistroShelf",
+            "id": "com.ranfdev.DistroShelf"
+        },
+        {
             "name": "Audio Player",
             "id": "org.gnome.Decibels"
         },

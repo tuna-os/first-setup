@@ -9,6 +9,10 @@
             "id": "io.missioncenter.MissionCenter"
         },
         {
+            "name": "Extension Manager",
+            "id": "com.mattjakeman.ExtensionManager"
+        },
+        {
             "name": "Audio Player",
             "id": "org.gnome.Decibels"
         },

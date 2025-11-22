@@ -17,7 +17,7 @@ if ! [ -b "$3" ]; then
 fi
 
 
-bootc \
+RUST_LOG=debug bootc \
     install \
     to-disk \
     --composefs-backend \

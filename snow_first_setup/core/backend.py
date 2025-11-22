@@ -3,10 +3,13 @@ from enum import Enum
 import time
 import os
 import subprocess
+import logging
 
 script_base_path = None
 
 dry_run = True
+
+logging.getLogger("FirstSetup::Backend")
 
 _progress_subscribers = []
 _error_subscribers = []
@@ -102,6 +105,9 @@ def run_script(name: str, args: list[str], root: bool = False, input_data: str =
     command = [script_path] + args
     if root:
         command = ["pkexec"] + command
+
+    logger.info(f"Executing command: {command}")
+    
     process = subprocess.Popen(
         command,
         stdout=subprocess.PIPE,
@@ -112,6 +118,8 @@ def run_script(name: str, args: list[str], root: bool = False, input_data: str =
 
     result, _ = process.communicate(input=input_data)
 
+    logger.info(f"Output from {name}:\n{result}")
+    
     if process.returncode != 0:
         report_error(name, command, result)
         print(name, args, "returned an error:")

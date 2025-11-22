@@ -9,7 +9,7 @@ script_base_path = None
 
 dry_run = True
 
-logging.getLogger("FirstSetup::Backend")
+logger = logging.getLogger("FirstSetup::Backend")
 
 _progress_subscribers = []
 _error_subscribers = []

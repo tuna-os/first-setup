@@ -50,7 +50,7 @@ fi
 
 mkfs.fat -n EFI-SYSTEM "${DEVICE}1"
 # if $2 is btrfs, format the root partition as btrfs
-# tbd: can we add subvolumes here? 
+# TBD: can we add subvolumes here? 
 if [ "$2" == "btrfs" ]; then
     mkfs.btrfs -f -L root "${DEVICE}2"
 elif [ "$2" == "ext4" ]; then

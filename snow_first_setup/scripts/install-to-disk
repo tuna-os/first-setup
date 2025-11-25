@@ -1,4 +1,5 @@
 #!/bin/bash
+
 if [ -z "$1" ] || [ -z "$2" ] || [ -z "$3" ]; then
     echo "usage:"
     echo "install-to-disk <image> <filesystem> <device>"
@@ -10,20 +11,56 @@ if ! [ "$UID" == "0" ]; then
     exit 6
 fi
 
+# we support btrfs and ext4 filesystems right now
+if [ "$2" != "btrfs" ] && [ "$2" != "ext4" ]; then
+    echo "unsupported filesystem: $2"
+    exit 10
+fi
 
 if ! [ -b "$3" ]; then
     echo "device '$3' is not a valid block device"
     exit 9
 fi
 
+rm -rf /tmp/installmnt
 
-RUST_LOG=debug bootc \
-    install \
-    to-disk \
-    --composefs-backend \
-    --filesystem "$2" \
-    --source-imgref docker://"$1" \
-    --target-imgref "$1" \
-    --wipe \
-    --bootloader systemd \
-    "$3"
+# Make a temporary mount point in /tmp
+mkdir -p /tmp/installmnt
+MOUNT=/tmp/installmnt/
+
+set -x
+umount "$MOUNT"
+
+set -e
+
+DEVICE="$3"
+parted "$DEVICE" --script mklabel gpt
+# use the ddi partition type for EFI system partition
+
+parted "$DEVICE" --align=optimal --script mkpart ESP fat32 1MiB 1024MiB
+parted "$DEVICE" --script set 1 boot on
+parted "$DEVICE" --script set 1 type c12a7328-f81f-11d2-ba4b-00a0c93ec93b
+parted "$DEVICE" --script mkpart primary "$2" 1024MiB 100%
+parted "$DEVICE" --script set 2 type 4f68bce3-e8cd-4db1-96e7-fbcaf984b709
+partprobe "${DEVICE}"
+# adjust partition names for nvme devices
+if [[ "$DEVICE" == *"nvme"* ]]; then
+    DEVICE="${DEVICE}p"
+fi
+
+mkfs.fat -n EFI-SYSTEM "${DEVICE}1"
+# if $2 is btrfs, format the root partition as btrfs with a fixed UUID
+if [ "$2" == "btrfs" ]; then
+    mkfs.btrfs -F -L root "${DEVICE}2"
+elif [ "$2" == "ext4" ]; then
+    mkfs.ext4 -O verity -L root "${DEVICE}2"
+else
+    echo "unsupported filesystem: $2"
+    exit 10
+fi
+
+mount "${DEVICE}2" "$MOUNT"
+mkdir "${MOUNT}/boot"
+mount "${DEVICE}1" "${MOUNT}/boot"
+
+bootc install to-filesystem --composefs-backend --bootloader systemd  --source-imgref docker://"$1" "$MOUNT"

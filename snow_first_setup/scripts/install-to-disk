@@ -55,9 +55,6 @@ if [ "$2" == "btrfs" ]; then
     mkfs.btrfs -f -L root "${DEVICE}2"
 elif [ "$2" == "ext4" ]; then
     mkfs.ext4 -O verity -L root "${DEVICE}2"
-else
-    echo "unsupported filesystem: $2"
-    exit 10
 fi
 
 mount "${DEVICE}2" "$MOUNT"

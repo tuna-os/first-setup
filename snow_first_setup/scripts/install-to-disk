@@ -40,8 +40,8 @@ parted "$DEVICE" --script mklabel gpt
 parted "$DEVICE" --align=optimal --script mkpart ESP fat32 1MiB 1024MiB
 parted "$DEVICE" --script set 1 boot on
 parted "$DEVICE" --script set 1 type c12a7328-f81f-11d2-ba4b-00a0c93ec93b
-parted "$DEVICE" --script mkpart primary "$2" 1024MiB 100%
-parted "$DEVICE" --script set 2 type 4f68bce3-e8cd-4db1-96e7-fbcaf984b709
+parted "$DEVICE" --script mkpart "ROOT" "$2" 1024MiB 100%
+parted "$DEVICE" --script type 2 4F68BCE3-E8CD-4DB1-96E7-FBCAF984B709
 partprobe "${DEVICE}"
 # adjust partition names for nvme devices
 if [[ "$DEVICE" == *"nvme"* ]]; then

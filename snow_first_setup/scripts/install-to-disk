@@ -48,6 +48,8 @@ if [[ "$DEVICE" == *"nvme"* || "$DEVICE" == *"mmcblk"* || "$DEVICE" == *"loop"* 
     DEVICE="${DEVICE}p"
 fi
 
+udevadm settle
+
 mkfs.fat -n EFI-SYSTEM "${DEVICE}1"
 # if $2 is btrfs, format the root partition as btrfs
 # TBD: can we add subvolumes here? 

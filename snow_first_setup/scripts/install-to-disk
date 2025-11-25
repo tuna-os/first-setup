@@ -65,6 +65,6 @@ mount "${DEVICE}1" "${MOUNT}/boot" || { echo "Failed to mount EFI partition (${D
 
 bootc install to-filesystem --composefs-backend --bootloader systemd --source-imgref docker://"$1" "$MOUNT"
 
-# unmount everything
+# unmount everything - but maybe we will want to keep it mounted for doing further setup.
 umount "${MOUNT}/boot"
 umount "$MOUNT"

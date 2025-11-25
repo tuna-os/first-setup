@@ -57,8 +57,8 @@ elif [ "$2" == "ext4" ]; then
     mkfs.ext4 -O verity -L root "${DEVICE}2"
 fi
 
-mount "${DEVICE}2" "$MOUNT"
+mount "${DEVICE}2" "$MOUNT" || { echo "Failed to mount root partition (${DEVICE}2) to $MOUNT"; exit 20; }
 mkdir "${MOUNT}/boot"
-mount "${DEVICE}1" "${MOUNT}/boot"
+mount "${DEVICE}1" "${MOUNT}/boot" || { echo "Failed to mount EFI partition (${DEVICE}1) to ${MOUNT}/boot"; exit 21; }
 
 bootc install to-filesystem --composefs-backend --bootloader systemd  --source-imgref docker://"$1" "$MOUNT"

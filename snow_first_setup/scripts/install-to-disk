@@ -63,7 +63,7 @@ mount "${DEVICE}2" "$MOUNT" || { echo "Failed to mount root partition (${DEVICE}
 mkdir "${MOUNT}/boot"
 mount "${DEVICE}1" "${MOUNT}/boot" || { echo "Failed to mount EFI partition (${DEVICE}1) to ${MOUNT}/boot"; exit 21; }
 
-bootc install to-filesystem --composefs-backend --bootloader systemd --source-imgref docker://"$1" "$MOUNT"
+bootc install to-filesystem --composefs-backend --bootloader systemd --skip-finalize --source-imgref docker://"$1" "$MOUNT"
 
 # unmount everything - but maybe we will want to keep it mounted for doing further setup.
 umount "${MOUNT}/boot"

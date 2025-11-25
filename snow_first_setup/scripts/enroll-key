@@ -6,4 +6,4 @@ if [ -z "$1" ]; then
 fi
 
 mokutil --timeout -1
-echo -e "snowlinux" | mokutil --import "$1"
+echo -e "snowlinux\nsnowlinux" | mokutil --import "$1"

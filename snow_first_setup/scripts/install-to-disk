@@ -29,7 +29,7 @@ mkdir -p /tmp/installmnt
 MOUNT=/tmp/installmnt/
 
 set -x
-umount "$MOUNT"
+umount "$MOUNT" 2>/dev/null || true
 
 set -e
 

@@ -52,7 +52,7 @@ class VanillaInstallDisk(Adw.Bin):
         except Exception:
             fs = None
         if not fs:
-            fs = "ext4"
+            fs = "btrfs"
         self.__window.install_target_fs = fs
         return True
 
@@ -117,7 +117,7 @@ class VanillaInstallDisk(Adw.Bin):
         # Ensure filesystem combobox has a default
         try:
             if self.fs_combo.get_selected() == Gtk.INVALID_LIST_POSITION:
-                self.fs_combo.set_selected(0)
+                self.fs_combo.set_selected(1)
         except Exception:
             pass
 

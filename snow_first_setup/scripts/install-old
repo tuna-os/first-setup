@@ -1,0 +1,29 @@
+#!/bin/bash
+if [ -z "$1" ] || [ -z "$2" ] || [ -z "$3" ]; then
+    echo "usage:"
+    echo "install-to-disk <image> <filesystem> <device>"
+    exit 5
+fi
+
+if ! [ "$UID" == "0" ]; then
+    echo "this script must be run with super user privileges"
+    exit 6
+fi
+
+
+if ! [ -b "$3" ]; then
+    echo "device '$3' is not a valid block device"
+    exit 9
+fi
+
+
+RUST_LOG=debug bootc \
+    install \
+    to-disk \
+    --composefs-backend \
+    --filesystem "$2" \
+    --source-imgref docker://"$1" \
+    --target-imgref "$1" \
+    --wipe \
+    --bootloader systemd \
+    "$3"

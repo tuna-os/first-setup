@@ -77,8 +77,8 @@
             "id": "org.gnome.Maps"
         },
         {
-            "name": "Photos",
-            "id": "org.gnome.Photos"
+            "name": "Loupe",
+            "id": "org.gnome.Loupe"
         },
         {
             "name": "Snapshot",

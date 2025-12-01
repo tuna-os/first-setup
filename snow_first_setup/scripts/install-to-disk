@@ -2,13 +2,31 @@
 
 if [ -z "$1" ] || [ -z "$2" ] || [ -z "$3" ]; then
     echo "usage:"
-    echo "install-to-disk <image> <filesystem> <device>"
+    echo "install-to-disk <image> <filesystem> <device> [fde] [passphrase]"
+    echo "  fde: 'true' or 'false' (optional, default: false)"
+    echo "  passphrase: required if fde is 'true'"
     exit 5
 fi
 
 if ! [ "$UID" == "0" ]; then
     echo "this script must be run with super user privileges"
     exit 6
+fi
+
+# Parse FDE parameters
+FDE="${4:-false}"
+PASSPHRASE="$5"
+
+# Validate FDE parameter
+if [ "$FDE" != "true" ] && [ "$FDE" != "false" ]; then
+    echo "fde parameter must be 'true' or 'false', got: $FDE"
+    exit 7
+fi
+
+# If FDE is enabled, passphrase is required
+if [ "$FDE" == "true" ] && [ -z "$PASSPHRASE" ]; then
+    echo "passphrase is required when fde is 'true'"
+    exit 8
 fi
 
 # we support btrfs and ext4 filesystems right now
@@ -52,7 +70,7 @@ udevadm settle
 
 mkfs.fat -n EFI-SYSTEM "${DEVICE}1"
 # if $2 is btrfs, format the root partition as btrfs
-# TBD: can we add subvolumes here? 
+# TBD: can we add subvolumes here?
 if [ "$2" == "btrfs" ]; then
     mkfs.btrfs -f -L root "${DEVICE}2"
 elif [ "$2" == "ext4" ]; then

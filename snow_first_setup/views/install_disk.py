@@ -19,6 +19,11 @@ class VanillaInstallDisk(Adw.Bin):
     disks_group = Gtk.Template.Child()
     no_disks_label = Gtk.Template.Child()
     fs_combo = Gtk.Template.Child()
+    fde_checkbox = Gtk.Template.Child()
+    fde_passphrase_entry = Gtk.Template.Child()
+    fde_passphrase_confirm_entry = Gtk.Template.Child()
+    fde_passphrase_error = Gtk.Template.Child()
+    fde_passphrase_confirm_error = Gtk.Template.Child()
 
     def __init__(self, window, **kwargs):
         super().__init__(**kwargs)
@@ -26,6 +31,19 @@ class VanillaInstallDisk(Adw.Bin):
         self.__selected_device = None
         # store tuples of (action_row, radio_button)
         self.__rows = []
+        # wire up FDE checkbox behavior
+        try:
+            self.fde_checkbox.connect("toggled", self.__on_fde_toggled)
+        except Exception:
+            pass
+        # validate on change
+        try:
+            self.fde_passphrase_entry.connect("changed", self.__on_fde_changed)
+            self.fde_passphrase_confirm_entry.connect("changed", self.__on_fde_changed)
+        except Exception:
+            pass
+        # ensure entries start disabled
+        self.__set_fde_entries_sensitive(False)
 
     def set_page_active(self):
         # Refresh available disks each time the page becomes active
@@ -54,6 +72,30 @@ class VanillaInstallDisk(Adw.Bin):
         if not fs:
             fs = "btrfs"
         self.__window.install_target_fs = fs
+
+        # Handle Full Disk Encryption selections
+        fde_enabled = False
+        passphrase = None
+        try:
+            fde_enabled = bool(self.fde_checkbox.get_active())
+        except Exception:
+            fde_enabled = False
+        if fde_enabled:
+            try:
+                pw1 = self.fde_passphrase_entry.get_text() or ""
+                pw2 = self.fde_passphrase_confirm_entry.get_text() or ""
+            except Exception:
+                pw1 = ""
+                pw2 = ""
+            # basic confirmation + length check
+            valid = self.__update_fde_errors(pw1, pw2)
+            if not valid:
+                self.__window.set_ready(False)
+                return False
+            passphrase = pw1
+        # store on window for later steps
+        self.__window.install_fde_enabled = fde_enabled
+        self.__window.install_fde_passphrase = passphrase
         return True
 
     def refresh_drives(self):
@@ -143,3 +185,55 @@ class VanillaInstallDisk(Adw.Bin):
                 row.remove_css_class("selected")
 
         self.__window.set_ready(True)
+
+
+    def __on_fde_toggled(self, checkbox):
+        active = checkbox.get_active()
+        self.__set_fde_entries_sensitive(active)
+        # Clear entries if disabling
+        if not active:
+            try:
+                self.fde_passphrase_entry.set_text("")
+                self.fde_passphrase_confirm_entry.set_text("")
+                self.fde_passphrase_error.set_visible(False)
+                self.fde_passphrase_confirm_error.set_visible(False)
+            except Exception:
+                pass
+        else:
+            # when enabling, re-validate current state
+            self.__on_fde_changed(None)
+
+    def __set_fde_entries_sensitive(self, sensitive: bool):
+        try:
+            self.fde_passphrase_entry.set_sensitive(sensitive)
+            self.fde_passphrase_confirm_entry.set_sensitive(sensitive)
+        except Exception:
+            pass
+
+    def __on_fde_changed(self, _entry):
+        # live validation when checkbox active
+        try:
+            if not self.fde_checkbox.get_active():
+                return
+            pw1 = self.fde_passphrase_entry.get_text() or ""
+            pw2 = self.fde_passphrase_confirm_entry.get_text() or ""
+        except Exception:
+            return
+        valid = self.__update_fde_errors(pw1, pw2)
+        # Gate navigation if FDE enabled and invalid
+        if valid:
+            # keep current readiness based on disk selection
+            self.__window.set_ready(bool(self.__selected_device))
+        else:
+            self.__window.set_ready(False)
+
+    def __update_fde_errors(self, pw1: str, pw2: str) -> bool:
+        min_len = 8
+        too_short = len(pw1) < min_len
+        mismatch = pw1 != pw2
+        try:
+            self.fde_passphrase_error.set_visible(too_short)
+            self.fde_passphrase_confirm_error.set_visible(mismatch and not too_short)
+        except Exception:
+            pass
+        return (not too_short) and (not mismatch) and (pw1 != "")

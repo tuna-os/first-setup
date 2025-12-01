@@ -15,6 +15,7 @@ class VanillaInstallConfirm(Adw.Bin):
 
     device_label = Gtk.Template.Child()
     fs_label = Gtk.Template.Child()
+    fde_label = Gtk.Template.Child()
     image_combo = Gtk.Template.Child()
     confirm_checkbox = Gtk.Template.Child()
     cancel_button = Gtk.Template.Child()
@@ -37,7 +38,7 @@ class VanillaInstallConfirm(Adw.Bin):
 
         # load images into combo
         self.__load_images()
-        
+
         # Connect notify::selected after loading images
         try:
             self.image_combo.connect("notify::selected", self.__on_input_changed)
@@ -48,6 +49,7 @@ class VanillaInstallConfirm(Adw.Bin):
         # populate labels from window properties
         device = getattr(self.__window, "install_target_device", None)
         fs = getattr(self.__window, "install_target_fs", None)
+        fde_enabled = getattr(self.__window, "install_fde_enabled", False)
         # Widgets may not be available in some runtime states; guard against None
         if getattr(self, 'device_label', None) is not None:
             if device:
@@ -59,6 +61,11 @@ class VanillaInstallConfirm(Adw.Bin):
                 self.fs_label.set_text(fs)
             else:
                 self.fs_label.set_text(_("<none>"))
+        if getattr(self, 'fde_label', None) is not None:
+            if fde_enabled:
+                self.fde_label.set_text(_("Enabled"))
+            else:
+                self.fde_label.set_text(_("Disabled"))
 
         # reset checkbox only (keep image selection intact)
         try:
@@ -123,13 +130,13 @@ class VanillaInstallConfirm(Adw.Bin):
         print(f"[DEBUG] self.__image_target = {self.__image_target}")
         print(f"[DEBUG] self.__image_text = {self.__image_text}")
         print(f"[DEBUG] self.__confirm_checked = {self.__confirm_checked}")
-        
+
         device = getattr(self.__window, "install_target_device", None)
         fs = getattr(self.__window, "install_target_fs", None)
         image = self.__image_target  # Direct access instead of getattr
-        
+
         print(f"[DEBUG] Retrieved: device={device}, fs={fs}, image={image}")
-        
+
         if not device or not fs or not image:
             print("[DEBUG] fail validation failed; device=", device, "fs=", fs, "image=", image)
             return False

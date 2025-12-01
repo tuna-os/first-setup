@@ -25,6 +25,7 @@
     <file>gtk/timezone.ui</file>
     <file>gtk/keyboard.ui</file>
     <file>gtk/widget-location-list-page.ui</file>
+    <file>gtk/recovery-key.ui</file>
 
     <file>gtk/layout-applications.ui</file>
     <file>gtk/applications-dialog.ui</file>

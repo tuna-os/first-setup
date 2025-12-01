@@ -71,19 +71,24 @@ class VanillaInstallProgress(Adw.Bin):
         device = getattr(self.__window, "install_target_device", None)
         fs = getattr(self.__window, "install_target_fs", None)
         image = getattr(self.__window, "install_target_image", None)
-        print("[DEBUG] __run_install params:", device, fs, image)
+        fde_enabled = getattr(self.__window, "install_fde_enabled", False)
+        print("[DEBUG] __run_install params:", device, fs, image, "fde_enabled:", fde_enabled)
 
         if not device or not fs or not image:
             GLib.idle_add(self.__mark_finished, False, _("Missing installation parameters."))
             return
 
         GLib.idle_add(self.detail_label.set_text, _("Writing image to disk…"))
-        success = backend.run_script("install-to-disk", [image, fs, device], root=True)
+
+        # Build script arguments with FDE parameters
+        script_args = [image, fs, device, "true" if fde_enabled else "false"]
+
+        success = backend.run_script("install-to-disk", script_args, root=True)
 
         if success and "snowfield" in image:
             print("[DEBUG] __run_install: Snowfield image selected, importing Surface Linux secure boot key")
             backend.run_script("enroll-key", ["/usr/share/linux-surface-secureboot/surface.cer"], root=True)
-        
+
         GLib.idle_add(self.__mark_finished, success, _("Installation complete." if success else _("Installation failed.")))
 
     def __mark_finished(self, success: bool, message: str):

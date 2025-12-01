@@ -34,11 +34,27 @@
                             <property name="model">
                               <object class="GtkStringList">
                                 <items>
-                                  <item translatable="yes">ext4</item>
                                   <item translatable="yes">btrfs</item>
+                                  <item translatable="yes">ext4</item>
                                 </items>
                               </object>
                             </property>
+                          </object>
+                        </child>
+                      </object>
+                    </child>
+
+                    <child>
+                      <object class="AdwPreferencesGroup" id="fde_group">
+                        <property name="title" translatable="yes">Encryption</property>
+                        <child>
+                          <object class="AdwActionRow" id="fde_row">
+                            <property name="title" translatable="yes">Full Disk Encryption (LUKS)</property>
+                            <child type="suffix">
+                              <object class="GtkCheckButton" id="fde_checkbox">
+                                <property name="valign">center</property>
+                              </object>
+                            </child>
                           </object>
                         </child>
                       </object>

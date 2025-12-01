@@ -49,6 +49,19 @@
                           </object>
                         </child>
                         <child>
+                          <object class="AdwActionRow">
+                            <property name="title" translatable="yes">Full Disk Encryption</property>
+                            <child type="suffix">
+                              <object class="GtkLabel" id="fde_label">
+                                <property name="label">Disabled</property>
+                                <style>
+                                  <class name="dim-label"/>
+                                </style>
+                              </object>
+                            </child>
+                          </object>
+                        </child>
+                        <child>
                           <object class="AdwComboRow" id="image_combo">
                             <property name="title" translatable="yes">Installation Image</property>
                             <property name="subtitle" translatable="yes">Select the hardware edition to install</property>

@@ -19,6 +19,7 @@ class VanillaInstallDisk(Adw.Bin):
     disks_group = Gtk.Template.Child()
     no_disks_label = Gtk.Template.Child()
     fs_combo = Gtk.Template.Child()
+    fde_checkbox = Gtk.Template.Child()
 
     def __init__(self, window, **kwargs):
         super().__init__(**kwargs)
@@ -26,6 +27,11 @@ class VanillaInstallDisk(Adw.Bin):
         self.__selected_device = None
         # store tuples of (action_row, radio_button)
         self.__rows = []
+        # wire up FDE checkbox behavior (currently no extra inputs)
+        try:
+            self.fde_checkbox.connect("toggled", self.__on_fde_toggled)
+        except Exception:
+            pass
 
     def set_page_active(self):
         # Refresh available disks each time the page becomes active
@@ -46,14 +52,20 @@ class VanillaInstallDisk(Adw.Bin):
         try:
             selected_idx = self.fs_combo.get_selected()
             if selected_idx == 0:
-                fs = "ext4"
-            elif selected_idx == 1:
                 fs = "btrfs"
+            elif selected_idx == 1:
+                fs = "ext4"
         except Exception:
             fs = None
         if not fs:
             fs = "btrfs"
         self.__window.install_target_fs = fs
+
+        # Handle Full Disk Encryption selection (no passphrase inputs)
+        try:
+            self.__window.install_fde_enabled = bool(self.fde_checkbox.get_active())
+        except Exception:
+            self.__window.install_fde_enabled = False
         return True
 
     def refresh_drives(self):
@@ -117,7 +129,7 @@ class VanillaInstallDisk(Adw.Bin):
         # Ensure filesystem combobox has a default
         try:
             if self.fs_combo.get_selected() == Gtk.INVALID_LIST_POSITION:
-                self.fs_combo.set_selected(1)
+                self.fs_combo.set_selected(0)
         except Exception:
             pass
 
@@ -143,3 +155,9 @@ class VanillaInstallDisk(Adw.Bin):
                 row.remove_css_class("selected")
 
         self.__window.set_ready(True)
+
+
+    def __on_fde_toggled(self, checkbox):
+        # No passphrase inputs to manage; optionally could trigger readiness update.
+        # Keep selection gating on disk radio buttons only.
+        return

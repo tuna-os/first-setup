@@ -107,7 +107,7 @@ def run_script(name: str, args: list[str], root: bool = False, input_data: str =
         command = ["pkexec"] + command
 
     logger.info(f"Executing command: {command}")
-    
+
     process = subprocess.Popen(
         command,
         stdout=subprocess.PIPE,
@@ -119,7 +119,7 @@ def run_script(name: str, args: list[str], root: bool = False, input_data: str =
     result, _ = process.communicate(input=input_data)
 
     logger.info(f"Output from {name}:\n{result}")
-    
+
     if process.returncode != 0:
         report_error(name, command, result)
         print(name, args, "returned an error:")
@@ -127,6 +127,46 @@ def run_script(name: str, args: list[str], root: bool = False, input_data: str =
         return False
 
     return True
+
+def run_script_with_output(name: str, args: list[str], root: bool = False, input_data: str = None) -> tuple[bool, str]:
+    """Execute a script and return (success, stdout).
+
+    Mirrors run_script but also returns the captured stdout for callers that need
+    to consume script output.
+    """
+    if dry_run:
+        print("dry-run", name, args)
+        time.sleep(0.3)
+        return True, ""
+    if script_base_path == None:
+        print("Could not run operation", name, args, "due to missing script base path")
+        return True, ""
+    script_path = os.path.join(script_base_path, name)
+    command = [script_path] + args
+    if root:
+        command = ["pkexec"] + command
+
+    logger.info(f"Executing command: {command}")
+
+    process = subprocess.Popen(
+        command,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+        text=True,
+        stdin=subprocess.PIPE
+    )
+
+    result, _ = process.communicate(input=input_data)
+
+    logger.info(f"Output from {name}:\n{result}")
+
+    if process.returncode != 0:
+        report_error(name, command, result)
+        print(name, args, "returned an error:")
+        print(result)
+        return False, result or ""
+
+    return True, result or ""
 
 _error_count = 0
 _lock_error_count = False

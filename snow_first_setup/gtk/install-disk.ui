@@ -34,8 +34,8 @@
                             <property name="model">
                               <object class="GtkStringList">
                                 <items>
-                                  <item translatable="yes">ext4</item>
                                   <item translatable="yes">btrfs</item>
+                                  <item translatable="yes">ext4</item>
                                 </items>
                               </object>
                             </property>

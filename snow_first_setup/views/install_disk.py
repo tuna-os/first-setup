@@ -64,9 +64,9 @@ class VanillaInstallDisk(Adw.Bin):
         try:
             selected_idx = self.fs_combo.get_selected()
             if selected_idx == 0:
-                fs = "ext4"
-            elif selected_idx == 1:
                 fs = "btrfs"
+            elif selected_idx == 1:
+                fs = "ext4"
         except Exception:
             fs = None
         if not fs:
@@ -159,7 +159,7 @@ class VanillaInstallDisk(Adw.Bin):
         # Ensure filesystem combobox has a default
         try:
             if self.fs_combo.get_selected() == Gtk.INVALID_LIST_POSITION:
-                self.fs_combo.set_selected(1)
+                self.fs_combo.set_selected(0)
         except Exception:
             pass
 

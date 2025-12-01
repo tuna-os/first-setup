@@ -162,6 +162,7 @@ class FirstSetupApplication(Adw.Application):
 
             if self.force_configure:
                 configure_system_mode = True
+                self.oem_mode = True
             elif self.force_regular:
                 configure_system_mode = False
 

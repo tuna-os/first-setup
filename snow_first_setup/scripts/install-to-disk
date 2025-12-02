@@ -101,7 +101,7 @@ cp /usr/lib/shim/shimx64.efi.signed "$MOUNTPOINT/EFI/BOOT/BOOTX64.efi"
 # finally uncomment the line in loader.conf that sets the timeout
 # so that the boot menu appears, allowing the user to edit the kargs
 # if needed to unlock the disk
-sed -i 's/^#timeout=/timeout=/' "$MOUNTPOINT/loader/loader.conf"
+sed -i 's/^#timeout/timeout/' "$MOUNTPOINT/loader/loader.conf"
 
 # clean up
 umount "$MOUNTPOINT"

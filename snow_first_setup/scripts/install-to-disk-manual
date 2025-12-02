@@ -1,5 +1,7 @@
 #!/bin/bash
 
+# this file is unused but saved for reference. Mostly "how not to do it"
+
 if [ -z "$1" ] || [ -z "$2" ] || [ -z "$3" ]; then
     echo "usage:"
     echo "install-to-disk <image> <filesystem> <device> [fde] [passphrase]"

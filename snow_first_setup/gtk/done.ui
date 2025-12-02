@@ -25,17 +25,6 @@
                 <property name="orientation">vertical</property>
                 <property name="spacing">12</property>
                   <child>
-                    <object class="GtkButton" id="btn_tour">
-                      <property name="label" translatable="yes">Take a tour</property>
-                      <property name="hexpand">true</property>
-                      <property name="valign">center</property>
-                      <style>
-                        <class name="pill"/>
-                        <class name="suggested-action"/>
-                      </style>
-                    </object>
-                  </child>
-                  <child>
                     <object class="GtkButton" id="btn_exit">
                       <property name="label" translatable="yes">Exit</property>
                       <property name="hexpand">true</property>

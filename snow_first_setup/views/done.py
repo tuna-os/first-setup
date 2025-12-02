@@ -26,7 +26,6 @@ class VanillaDone(Adw.Bin):
     __gtype_name__ = "VanillaDone"
 
     status_page = Gtk.Template.Child()
-    btn_tour = Gtk.Template.Child()
     btn_exit = Gtk.Template.Child()
     btn_logs = Gtk.Template.Child()
     log_box = Gtk.Template.Child()
@@ -42,19 +41,14 @@ class VanillaDone(Adw.Bin):
 
         self.btn_logs.connect("clicked", self.__on_logs_clicked)
         self.btn_exit.connect("clicked", self.__on_exit_clicked)
-        self.btn_tour.connect("clicked", self.__on_tour_clicked)
 
     def set_page_active(self):
         has_errors = len(backend.errors) > 0
         self.btn_logs.set_visible(has_errors)
-        self.btn_tour.grab_focus()
+        self.btn_exit.grab_focus()
 
     def set_page_inactive(self):
         return
-
-    def __on_tour_clicked(self, *args):
-        subprocess.Popen(["/usr/bin/snow-tour"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, stdin=subprocess.DEVNULL, start_new_session=True)
-        self.__window.close()
 
     def __on_exit_clicked(self, *args):
         self.__window.close()

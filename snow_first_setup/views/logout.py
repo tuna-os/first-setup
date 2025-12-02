@@ -54,6 +54,8 @@ class VanillaLogout(Adw.Bin):
     __currently_running = False
 
     def __on_login_clicked(self, *args):
+        # disable the button
+        self.btn_login.set_sensitive(False)
         if not self.__already_subscribed:
             backend.subscribe_progress(self.__deferred_progress_callback)
             self.__already_subscribed = True

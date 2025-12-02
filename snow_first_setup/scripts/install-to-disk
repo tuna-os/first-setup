@@ -49,3 +49,55 @@ RUST_LOG=debug bootc \
     --wipe \
     --bootloader systemd \
     "$3"
+
+# HACK: fix secure boot in bootc
+# now that the install is done, we can fix the efi binaries
+# to support secure boot.
+# This is a workaround for the fact that the bootc installs
+# systemd-boot only. What we require is the signed-shim as
+# the first efi binary, which then loads systemd-boot.
+# shim is hard-coded to load grub, so we'll "fix" that by copying the
+# systemd-boot binaries into the right place with grub's name.
+# HACK ALERT! We're copying the efi binaries from the installer image
+# to the target image. This is not ideal, but it works for now.
+
+# Mount the EFI partition from the target device ($3)
+# EFI partition is the second partition, so we use partprobe
+# to ensure the kernel sees it
+partprobe "$3"
+
+DEVICE="$3"
+
+# adjust partition names for devices that require 'p' before partition number
+if [[ "$DEVICE" == *"nvme"* || "$DEVICE" == *"mmcblk"* || "$DEVICE" == *"loop"* ]]; then
+    DEVICE="${DEVICE}p"
+fi
+
+MOUNTPOINT=$(mktemp -d)
+mount "${DEVICE}2" "$MOUNTPOINT"
+
+
+if [ ! -d "$MOUNTPOINT/EFI/BOOT" ]; then
+    mkdir -p "$MOUNTPOINT/EFI/BOOT"
+fi
+
+# make sure the source files exists
+if [ ! -f /usr/lib/systemd/boot/efi/systemd-bootx64.efi.signed ]; then
+    echo "systemd-bootx64.efi.signed not found, cannot copy to EFI partition"
+    exit 10
+fi
+if [ ! -f /usr/lib/shim/shimx64.efi.signed ]; then
+    echo "shimx64.efi.signed not found, cannot copy to EFI partition"
+    exit 11
+fi
+
+# copy /usr/lib/systemd/boot/efi/systemd-bootx64.efi.signed to the mounted efi partition
+# as grubx64.efi
+cp /usr/lib/systemd/boot/efi/systemd-bootx64.efi.signed "$MOUNTPOINT/EFI/BOOT/grubx64.efi"
+
+# copy the signed shim binary to the mounted efi partition, renaming it to BOOTX64.efi
+cp /usr/lib/shim/shimx64.efi.signed "$MOUNTPOINT/EFI/BOOT/BOOTX64.efi"
+
+# clean up
+umount "$MOUNTPOINT"
+rmdir "$MOUNTPOINT"

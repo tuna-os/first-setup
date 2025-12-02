@@ -98,6 +98,16 @@ cp /usr/lib/systemd/boot/efi/systemd-bootx64.efi.signed "$MOUNTPOINT/EFI/BOOT/gr
 # copy the signed shim binary to the mounted efi partition, renaming it to BOOTX64.efi
 cp /usr/lib/shim/shimx64.efi.signed "$MOUNTPOINT/EFI/BOOT/BOOTX64.efi"
 
+# copy the mmx64 signed binary to the mounted efi partition
+if [ -f /usr/lib/shim/mmx64.efi.signed ]; then
+    cp /usr/lib/shim/mmx64.efi.signed "$MOUNTPOINT/EFI/BOOT/mmx64.efi"
+fi
+
+# copy the fallback signed binary to the mounted efi partition
+if [ -f /usr/lib/shim/fbx64.efi.signed ]; then
+    cp /usr/lib/shim/fbx64.efi.signed "$MOUNTPOINT/EFI/BOOT/fbx64.efi"
+fi
+
 # finally uncomment the line in loader.conf that sets the timeout
 # so that the boot menu appears, allowing the user to edit the kargs
 # if needed to unlock the disk

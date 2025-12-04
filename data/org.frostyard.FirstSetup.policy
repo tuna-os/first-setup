@@ -82,6 +82,18 @@
     <annotate key="org.freedesktop.policykit.exec.path">/usr/share/org.frostyard.FirstSetup/snow_first_setup/scripts/install-to-disk</annotate>
   </action>
 
+  <action id="org.frostyard.FirstSetup.scripts.oemcomplete">
+    <description>FirstSetup OEM complete script</description>
+    <message>Mark the OEM setup as complete</message>
+    <defaults>
+      <allow_any>no</allow_any>
+      <allow_inactive>no</allow_inactive>
+      <allow_active>auth_admin</allow_active>
+    </defaults>
+    <annotate key="org.freedesktop.policykit.exec.path">/usr/share/org.frostyard.FirstSetup/snow_first_setup/scripts/oemcomplete</annotate>
+  </action>
+
+
   <action id="org.frostyard.FirstSetup.scripts.enrollKey">
     <description>FirstSetup secure boot key enrollment script</description>
     <message>Enroll a specified secure boot key</message>

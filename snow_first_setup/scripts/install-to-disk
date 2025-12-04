@@ -90,24 +90,23 @@ if [ ! -f /usr/lib/shim/shimx64.efi.signed ]; then
     echo "shimx64.efi.signed not found, cannot copy to EFI partition"
     exit 11
 fi
-
-# copy /usr/lib/systemd/boot/efi/systemd-bootx64.efi.signed to the mounted efi partition
-# as grubx64.efi
-cp /usr/lib/systemd/boot/efi/systemd-bootx64.efi.signed "$MOUNTPOINT/EFI/BOOT/grubx64.efi"
-
-# copy the signed shim binary to the mounted efi partition, renaming it to BOOTX64.efi
-cp /usr/lib/shim/shimx64.efi.signed "$MOUNTPOINT/EFI/BOOT/BOOTX64.efi"
-
-# copy the mmx64 signed binary to the mounted efi partition
-if [ -f /usr/lib/shim/mmx64.efi.signed ]; then
-    cp /usr/lib/shim/mmx64.efi.signed "$MOUNTPOINT/EFI/BOOT/mmx64.efi"
+if [ ! -f /usr/lib/shim/fbx64.efi.signed ]; then
+    echo "fbx64.efi.signed not found, cannot copy to EFI partition"
+    exit 12
 fi
-
-# copy the fallback signed binary to the mounted efi partition
-if [ -f /usr/lib/shim/fbx64.efi.signed ]; then
-    cp /usr/lib/shim/fbx64.efi.signed "$MOUNTPOINT/EFI/BOOT/fbx64.efi"
+if [ ! -f /usr/lib/shim/mmx64.efi.signed ]; then
+    echo "mmx64.efi.signed not found, cannot copy to EFI partition"
+    exit 13
 fi
+# replicate a debian secureboot efi setup
+mkdir -p "$MOUNTPOINT/EFI/snow"
+cp /usr/lib/shim/shimx64.efi.signed "$MOUNTPOINT/EFI/snow/shimx64.efi"
+cp /usr/lib/shim/fbx64.efi.signed "$MOUNTPOINT/EFI/snow/fbx64.efi"
+cp /usr/lib/shim/mmx64.efi.signed "$MOUNTPOINT/EFI/snow/mmx64.efi"
+cp /usr/lib/systemd/boot/efi/systemd-bootx64.efi.signed "$MOUNTPOINT/EFI/snow/grubx64.efi"
 
+# create a new boot entry for shim
+efibootmgr --create --disk "$3" --part 2 --loader '\EFI\snow\shimx64.efi' --label "Snow Secure Boot"
 # finally uncomment the line in loader.conf that sets the timeout
 # so that the boot menu appears, allowing the user to edit the kargs
 # if needed to unlock the disk

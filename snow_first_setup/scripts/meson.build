@@ -22,6 +22,7 @@ sources = [
   'install-to-disk',
   'enroll-key',
   'recovery-key',
+  'oemcomplete',
 ]
 
 install_data(sources, install_dir: scriptsdir)

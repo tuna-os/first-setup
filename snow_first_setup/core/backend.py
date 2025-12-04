@@ -80,6 +80,9 @@ def setup_flatpak_remote():
 def remove_first_setup_user():
     return run_script("remove-first-setup-user", [], root=True)
 
+def oem_complete():
+    return run_script("oemcomplete", [], root=True)
+
 def remove_autostart_file():
     return run_script("remove-autostart-file", [])
 

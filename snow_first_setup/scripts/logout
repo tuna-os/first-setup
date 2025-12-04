@@ -10,11 +10,5 @@ if [ "$UID" == "0" ]; then
     exit 7
 fi
 
-mkdir -p /etc/snow/
-touch /etc/snow/oem-complete
-
-# modify /etc/gdm3/daemon.conf to disable automatic login
-sed -i '/^\[daemon\]/a AutomaticLoginEnable=false' /etc/gdm3/daemon.conf
-sed -i '/^\[daemon\]/a AutomaticLogin=' /etc/gdm3/daemon.conf
 
 loginctl terminate-user "$USER"

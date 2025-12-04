@@ -42,6 +42,7 @@ class VanillaLogout(Adw.Bin):
 
     def set_page_active(self):
         backend.remove_first_setup_user()
+        backend.oem_complete()
         has_errors = len(backend.errors) > 0
         self.btn_logs.set_visible(has_errors)
         self.btn_login.grab_focus()

@@ -29,6 +29,7 @@ COMPOSEFS_ENABLED=true
 LUKS_NAME="root"
 PASSPHRASE=""
 RECOVERY_KEY=""
+IMAGE="ghcr.io/frostyard/snow"
 KARGS=()
 
 usage() {
@@ -431,7 +432,23 @@ install_create_rootfs() {
     echo "  EFI:  $efifs"
 
     # this is where we would proceed with the actual installation
-    # ... bootc install to-filesystem ...options... $physical_root_path
+    # Build bootc command with individual --karg arguments
+    local bootc_cmd=(
+        bootc install to-filesystem
+        --composefs-backend
+        --bootloader systemd
+        --skip-finalize
+        --source-imgref "docker://$IMAGE"
+    )
+
+    # Add each kernel argument individually
+    for karg in "${all_kargs[@]}"; do
+        bootc_cmd+=(--karg "$karg")
+    done
+
+    bootc_cmd+=("$physical_root_path")
+
+    "${bootc_cmd[@]}" || error "Failed to install container"
 
     # todo: write the recovery key to a file in /tmp so the installer can
     # display it to the user without having to rewrite the installer to handle

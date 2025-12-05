@@ -449,6 +449,9 @@ install_create_rootfs() {
 
     bootc_cmd+=("$physical_root_path")
 
+    log "Running bootc install command"
+    log "${bootc_cmd[@]}"
+
     "${bootc_cmd[@]}" || error "Failed to install container"
 
     # todo: write the recovery key to a file in /tmp so the installer can

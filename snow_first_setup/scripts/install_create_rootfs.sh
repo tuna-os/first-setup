@@ -53,7 +53,8 @@ EOF
 }
 
 log() {
-    echo "[$(date +'%Y-%m-%d %H:%M:%S')] $*" >&2
+    logfile="/tmp/install-to-disk-$(basename "$DEVICE")"
+    echo "[$(date +'%Y-%m-%d %H:%M:%S')] $*" >> "$logfile"
 }
 
 error() {

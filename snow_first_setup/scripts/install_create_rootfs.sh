@@ -432,6 +432,15 @@ install_create_rootfs() {
     # this is where we would proceed with the actual installation
     # ... bootc install to-filesystem ...options... $physical_root_path
 
+    # todo: write the recovery key to a file in /tmp so the installer can
+    # display it to the user without having to rewrite the installer to handle
+    # these scripts having output to the user.
+    if [[ "$BLOCK_SETUP" == "tpm2-luks" ]]; then
+        local recovery_file="/tmp/recovery-key-$(basename "$DEVICE")"
+        echo "$RECOVERY_KEY" > "$recovery_file" || error "Failed to write recovery key to file"
+        log "Recovery key written to $recovery_file"
+    fi
+
     # clean up and unmount everything
     umount -R "$physical_root_path" || error "Failed to unmount root filesystem"
     rm -rf "$mntdir" || error "Failed to clean up mount directory"

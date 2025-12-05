@@ -202,6 +202,10 @@ setup_tpm2_luks() {
         --key-file "$keyfile" \
         "$dev" || error "Failed to initialize LUKS"
 
+
+    # TODO: should we skip this if we're not in secure boot mode?
+    # not much point in having a TPM unlock tied to pcr7 if we're not in secure boot mode.
+    # we should also check if the TPM is available and functional.
     log "Enrolling root device with TPM"
     # if no pcrs are specified, use the default set by systemd-cryptenroll
     # which is only 7. Then we'll end up with a passphrase unlock,

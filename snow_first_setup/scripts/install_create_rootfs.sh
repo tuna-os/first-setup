@@ -373,6 +373,7 @@ install_create_rootfs() {
         RECOVERY_KEY="${luks_rest#*|}"
         root_kargs+=("luks.uuid=$luks_uuid")
         root_kargs+=("luks.options=discard,tpm2-device=auto,headless=true")
+        root_kargs+=("rd.luks.options=discard")
     else
         rootdev="$root_part"
     fi

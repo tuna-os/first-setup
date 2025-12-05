@@ -468,8 +468,10 @@ install_create_rootfs() {
         cp /usr/lib/shim/fbx64.efi.signed "$physical_root_path/boot/efi/EFI/snow/fbx64.efi"
         cp /usr/lib/shim/mmx64.efi.signed "$physical_root_path/boot/efi/EFI/snow/mmx64.efi"
         cp /usr/lib/systemd/boot/efi/systemd-bootx64.efi.signed "$physical_root_path/boot/efi/EFI/snow/grubx64.efi"
+
         # create a new boot entry for shim
         efibootmgr --create --disk "$DEVICE" --part 2 --loader '\EFI\snow\shimx64.efi' --label "Snow Secure Boot"
+
         # finally uncomment the line in loader.conf that sets the timeout
         # so that the boot menu appears, allowing the user to edit the kargs
         # if needed to unlock the disk

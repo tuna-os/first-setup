@@ -457,6 +457,24 @@ install_create_rootfs() {
         local recovery_file="/tmp/recovery-key-$(basename "$DEVICE")"
         echo "$RECOVERY_KEY" > "$recovery_file" || error "Failed to write recovery key to file"
         log "Recovery key written to $recovery_file"
+
+        # now mangle the efi
+        mkdir -p "$physical_root_path/boot/efi" || error "Failed to create EFI mount point"
+        mount "$esp_part" "$physical_root_path/boot/efi" || error "Failed to mount esp partition"
+
+        # replicate a debian secureboot efi setup
+        mkdir -p "$physical_root_path/boot/efi/EFI/snow"
+        cp /usr/lib/shim/shimx64.efi.signed "$physical_root_path/boot/efi/EFI/snow/shimx64.efi"
+        cp /usr/lib/shim/fbx64.efi.signed "$physical_root_path/boot/efi/EFI/snow/fbx64.efi"
+        cp /usr/lib/shim/mmx64.efi.signed "$physical_root_path/boot/efi/EFI/snow/mmx64.efi"
+        cp /usr/lib/systemd/boot/efi/systemd-bootx64.efi.signed "$physical_root_path/boot/efi/EFI/snow/grubx64.efi"
+        # create a new boot entry for shim
+        efibootmgr --create --disk "$DEVICE" --part 2 --loader '\EFI\snow\shimx64.efi' --label "Snow Secure Boot"
+        # finally uncomment the line in loader.conf that sets the timeout
+        # so that the boot menu appears, allowing the user to edit the kargs
+        # if needed to unlock the disk
+        sed -i 's/^#timeout/timeout/' "$physical_root_path/loader/loader.conf" || error "Failed to modify loader.conf"
+        umount "$physical_root_path/boot/efi" || error "Failed to unmount esp partition"
     fi
 
     # clean up and unmount everything

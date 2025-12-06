@@ -478,8 +478,8 @@ install_create_rootfs() {
 
         sgdiskout=$(sgdisk --print "$DEVICE" || error "Failed to get sgdisk output")
         log "sgdisk output:\n$sgdiskout"
-        bootout=$(ls -la "$physical_root_path/boot" || error "Failed to get boot efi output")
-        log "boot efi output:\n$bootout"
+        bootout=$(ls -la "$physical_root_path/boot" || error "Failed to get boot output")
+        log "boot output:\n$bootout"
         rootout=$(ls -la "$physical_root_path" || error "Failed to get root  output")
         log "root filesystem output:\n$rootout"
 

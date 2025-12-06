@@ -476,12 +476,24 @@ install_create_rootfs() {
         # create a new boot entry for shim
         efibootmgr --create --disk "$DEVICE" --part 2 --loader '\EFI\snow\shimx64.efi' --label "Snow Secure Boot"
 
+        sgdiskout=$(sgdisk --print "$DEVICE" || error "Failed to get sgdisk output")
+        log "sgdisk output:\n$sgdiskout"
+        bootout=$(ls -la "$physical_root_path/boot" || error "Failed to get boot efi output")
+        log "boot efi output:\n$bootout"
+        rootout=$(ls -la "$physical_root_path" || error "Failed to get root  output")
+        log "root filesystem output:\n$rootout"
+
         # finally uncomment the line in loader.conf that sets the timeout
         # so that the boot menu appears, allowing the user to edit the kargs
         # if needed to unlock the disk
         sed -i 's/^#timeout/timeout/' "$physical_root_path/boot/loader/loader.conf" || error "Failed to modify loader.conf"
         umount "$physical_root_path/boot/efi" || error "Failed to unmount esp partition"
     fi
+
+    sgdiskout=$(sgdisk --print "$DEVICE" || error "Failed to get sgdisk output")
+    log "sgdisk output:\n$sgdiskout"
+    bootout=$(ls -la "$physical_root_path/boot" || error "Failed to get boot efi output")
+    log "boot efi output:\n$bootout"
 
     # clean up and unmount everything
     umount -R "$physical_root_path" || error "Failed to unmount root filesystem"

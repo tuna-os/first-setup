@@ -270,10 +270,6 @@ create_partitions() {
     ((partno++))
     sfdisk_input+="size=${esp_size}MiB, type=$ESP_GUID, name=\"EFI-SYSTEM\"\n"
 
-    # Boot partition (required by assumption)
-    ((partno++))
-    sfdisk_input+="size=${BOOTPN_SIZE_MB}MiB, name=\"boot\"\n"
-
     # Root partition
     ((partno++))
     if [[ -n "$ROOT_SIZE" ]]; then
@@ -308,12 +304,9 @@ get_partition() {
 # Main installation function
 install_create_rootfs() {
     local esp_partno=2
-    local boot_partno=3
-    local root_partno=4
+    local root_partno=
     local rootdev
     local root_uuid
-    local boot_uuid
-    local boot_part
     local root_part
     local esp_part
     local mntdir="$RUN_BOOTC/mounts"
@@ -356,11 +349,9 @@ install_create_rootfs() {
 
     # Get partition paths
     root_part=$(get_partition "$DEVICE" "$root_partno")
-    boot_part=$(get_partition "$DEVICE" "$boot_partno")
     esp_part=$(get_partition "$DEVICE" "$esp_partno")
 
     log "Root partition: $root_part"
-    log "Boot partition: $boot_part"
     log "ESP partition: $esp_part"
 
     # Setup root device (with or without LUKS)
@@ -378,8 +369,6 @@ install_create_rootfs() {
         rootdev="$root_part"
     fi
 
-    # Create boot filesystem
-    boot_uuid=$(mkfs_with_uuid "$boot_part" "$FILESYSTEM" "boot")
 
     # Create root filesystem
     root_uuid=$(mkfs_with_uuid "$rootdev" "$FILESYSTEM" "root")
@@ -395,17 +384,16 @@ install_create_rootfs() {
     log "Mounting boot filesystem"
     # first create the mount point
     mkdir -p "$physical_root_path/boot" || error "Failed to create boot mount point"
-    mount "$boot_part" "$physical_root_path/boot" || error "Failed to mount boot"
+
 
     # Create EFI directory
-    efifs="$physical_root_path/boot/efi"
+    efifs="$physical_root_path/boot"
     mkdir -p "$efifs" || error "Failed to create EFI directory"
     mount "$esp_part" "$efifs" || error "Failed to mount esp partition"
 
     # Build kernel arguments
     local all_kargs=("root=UUID=$root_uuid" "$RW_KARG")
     all_kargs+=("${root_kargs[@]}")
-    all_kargs+=("boot=UUID=$boot_uuid")
     all_kargs+=("${KARGS[@]}")
 
     # Output results
@@ -414,7 +402,6 @@ install_create_rootfs() {
     echo "=== Installation Summary ==="
     echo "Device: $DEVICE"
     echo "Root UUID: $root_uuid"
-    echo "Boot UUID: $boot_uuid"
     echo "Root device: $rootdev"
     echo "Filesystem: $FILESYSTEM"
     echo "Physical root path: $physical_root_path"
@@ -430,7 +417,6 @@ install_create_rootfs() {
     echo ""
     echo "Mount points:"
     echo "  Root: $physical_root_path"
-    echo "  Boot: $physical_root_path/boot"
     echo "  EFI:  $efifs"
 
     # this is where we would proceed with the actual installation
@@ -466,10 +452,10 @@ install_create_rootfs() {
 
         # replicate a debian secureboot efi setup
         mkdir -p "$physical_root_path/boot/efi/EFI/snow"
-        cp /usr/lib/shim/shimx64.efi.signed "$physical_root_path/boot/efi/EFI/snow/shimx64.efi"
-        cp /usr/lib/shim/fbx64.efi.signed "$physical_root_path/boot/efi/EFI/snow/fbx64.efi"
-        cp /usr/lib/shim/mmx64.efi.signed "$physical_root_path/boot/efi/EFI/snow/mmx64.efi"
-        cp /usr/lib/systemd/boot/efi/systemd-bootx64.efi.signed "$physical_root_path/boot/efi/EFI/snow/grubx64.efi"
+        cp /usr/lib/shim/shimx64.efi.signed "$physical_root_path/boot/EFI/snow/shimx64.efi"
+        cp /usr/lib/shim/fbx64.efi.signed "$physical_root_path/boot/EFI/snow/fbx64.efi"
+        cp /usr/lib/shim/mmx64.efi.signed "$physical_root_path/boot/EFI/snow/mmx64.efi"
+        cp /usr/lib/systemd/boot/efi/systemd-bootx64.efi.signed "$physical_root_path/boot/EFI/snow/grubx64.efi"
 
         # create a new boot entry for shim
         efibootmgr --create --disk "$DEVICE" --part 2 --loader '\EFI\snow\shimx64.efi' --label "Snow Secure Boot"
@@ -485,7 +471,7 @@ install_create_rootfs() {
         # so that the boot menu appears, allowing the user to edit the kargs
         # if needed to unlock the disk
         sed -i 's/^#timeout/timeout/' "$physical_root_path/boot/loader/loader.conf" || error "Failed to modify loader.conf"
-        umount "$physical_root_path/boot/efi" || error "Failed to unmount esp partition"
+        umount "$physical_root_path/boot" || error "Failed to unmount esp partition"
     fi
 
     sgdiskout=$(sgdisk --print "$DEVICE" || error "Failed to get sgdisk output")

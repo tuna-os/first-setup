@@ -400,6 +400,7 @@ install_create_rootfs() {
     # Create EFI directory
     efifs="$physical_root_path/boot/efi"
     mkdir -p "$efifs" || error "Failed to create EFI directory"
+    mount "$esp_part" "$efifs" || error "Failed to mount esp partition"
 
     # Build kernel arguments
     local all_kargs=("root=UUID=$root_uuid" "$RW_KARG")
@@ -435,7 +436,7 @@ install_create_rootfs() {
     # this is where we would proceed with the actual installation
     # Build bootc command with individual --karg arguments
     local bootc_cmd=(
-        RUST_LOG=debug bootc install to-filesystem
+        bootc install to-filesystem
         --composefs-backend
         --bootloader systemd
         --skip-finalize
@@ -462,9 +463,6 @@ install_create_rootfs() {
         echo "$RECOVERY_KEY" > "$recovery_file" || error "Failed to write recovery key to file"
         log "Recovery key written to $recovery_file"
 
-        # now mangle the efi
-        mkdir -p "$physical_root_path/boot/efi" || error "Failed to create EFI mount point"
-        mount "$esp_part" "$physical_root_path/boot/efi" || error "Failed to mount esp partition"
 
         # replicate a debian secureboot efi setup
         mkdir -p "$physical_root_path/boot/efi/EFI/snow"

@@ -435,7 +435,7 @@ install_create_rootfs() {
     # this is where we would proceed with the actual installation
     # Build bootc command with individual --karg arguments
     local bootc_cmd=(
-        bootc install to-filesystem
+        RUST_LOG=debug bootc install to-filesystem
         --composefs-backend
         --bootloader systemd
         --skip-finalize

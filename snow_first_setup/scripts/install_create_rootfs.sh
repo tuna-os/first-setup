@@ -479,7 +479,7 @@ install_create_rootfs() {
         # finally uncomment the line in loader.conf that sets the timeout
         # so that the boot menu appears, allowing the user to edit the kargs
         # if needed to unlock the disk
-        sed -i 's/^#timeout/timeout/' "$physical_root_path/loader/loader.conf" || error "Failed to modify loader.conf"
+        sed -i 's/^#timeout/timeout/' "$physical_root_path/boot/loader/loader.conf" || error "Failed to modify loader.conf"
         umount "$physical_root_path/boot/efi" || error "Failed to unmount esp partition"
     fi
 

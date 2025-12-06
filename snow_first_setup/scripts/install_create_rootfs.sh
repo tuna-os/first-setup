@@ -451,7 +451,7 @@ install_create_rootfs() {
 
 
         # replicate a debian secureboot efi setup
-        mkdir -p "$physical_root_path/boot/efi/EFI/snow"
+        mkdir -p "$physical_root_path/boot/EFI/snow"
         cp /usr/lib/shim/shimx64.efi.signed "$physical_root_path/boot/EFI/snow/shimx64.efi"
         cp /usr/lib/shim/fbx64.efi.signed "$physical_root_path/boot/EFI/snow/fbx64.efi"
         cp /usr/lib/shim/mmx64.efi.signed "$physical_root_path/boot/EFI/snow/mmx64.efi"

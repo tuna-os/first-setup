@@ -21,6 +21,7 @@ sources = [
   'theme.py',
   'timezone.py',
   'user.py',
+  'user_home.py',
   'welcome_user.py',
   'welcome_install.py',
   'welcome.py',

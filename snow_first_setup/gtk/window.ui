@@ -12,7 +12,7 @@
         <property name="child">
           <object class="AdwToolbarView">
             <property name="content">
-              <object class="GtkOverlay">
+              <object class="GtkOverlay" id="content_overlay">
                 <property name="valign">center</property>
                 <child type="overlay">
                   <object class="GtkButton" id="btn_back">

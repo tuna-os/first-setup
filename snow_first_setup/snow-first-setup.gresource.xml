@@ -19,6 +19,7 @@
     <file>gtk/install-confirm.ui</file>
     <file>gtk/install-done.ui</file>
     <file>gtk/user.ui</file>
+    <file>gtk/user-home.ui</file>
     <file>gtk/hostname.ui</file>
     <file>gtk/language.ui</file>
     <file>gtk/location.ui</file>

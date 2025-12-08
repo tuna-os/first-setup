@@ -33,6 +33,7 @@ class VanillaWindow(Adw.ApplicationWindow):
     btn_next = Gtk.Template.Child()
     btn_next_spinner = Gtk.Template.Child()
     toasts = Gtk.Template.Child()
+    content_overlay = Gtk.Template.Child()
     style_manager = Adw.StyleManager().get_default()
 
     can_continue = False
@@ -179,32 +180,18 @@ class VanillaWindow(Adw.ApplicationWindow):
 
         elif user_mode:
             print("Building user mode UI.")
-            from snow_first_setup.views.welcome_user import VanillaWelcomeUser
-            from snow_first_setup.views.conn_check import VanillaConnCheck
-            from snow_first_setup.views.theme import VanillaTheme
-            from snow_first_setup.views.applications import VanillaLayoutApplications
-            from snow_first_setup.views.progress import VanillaProgress
-            from snow_first_setup.views.done import VanillaDone
+            from snow_first_setup.views.user_home import VanillaUserHome
 
-            self.__view_welcome = VanillaWelcomeUser(self)
+            self.__view_welcome = VanillaUserHome(self)
             self.__view_welcome.no_next_button = True
             self.__view_welcome.no_back_button = True
-            self.__view_conn_check = VanillaConnCheck(self)
-            self.__view_conn_check.no_back_button = True
-            self.__view_theme = VanillaTheme(self)
-            self.__view_theme.no_back_button = True
-            self.__view_apps = VanillaLayoutApplications(self)
-            self.__view_progress = VanillaProgress(self)
-            self.__view_progress.no_back_button = True
-            self.__view_done = VanillaDone(self)
-            self.__view_done.no_next_button = True
 
             self.pages.append(self.__view_welcome)
-            self.pages.append(self.__view_conn_check)
-            self.pages.append(self.__view_theme)
-            self.pages.append(self.__view_apps)
-            self.pages.append(self.__view_progress)
-            self.pages.append(self.__view_done)
+
+            # Enable window controls in user mode
+            self.set_deletable(True)
+            # Make content fill the entire window vertically
+            self.content_overlay.set_valign(Gtk.Align.FILL)
 
         else:
             print("Building first-login mode UI.")

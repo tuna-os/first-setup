@@ -75,6 +75,17 @@
                                 </property>
                             </object>
                         </child>
+                        <child>
+                            <object class="AdwViewStackPage">
+                                <property name="name">help</property>
+                                <property name="title" translatable="yes">Help</property>
+                                <property name="icon-name">help-browser-symbolic</property>
+                                <property name="child">
+                                    <object class="AdwPreferencesPage" id="help_page">
+                                    </object>
+                                </property>
+                            </object>
+                        </child>
                     </object>
                 </property>
                 <child type="bottom">

@@ -30,6 +30,7 @@ class VanillaUserHome(Adw.Bin):
     updates_page = Gtk.Template.Child()
     applications_page = Gtk.Template.Child()
     maintenance_page = Gtk.Template.Child()
+    help_page = Gtk.Template.Child()
 
     def __init__(self, window, **kwargs):
         super().__init__(**kwargs)
@@ -44,6 +45,7 @@ class VanillaUserHome(Adw.Bin):
         self.__build_updates_page()
         self.__build_applications_page()
         self.__build_maintenance_page()
+        self.__build_help_page()
 
     def __build_system_page(self):
         """Build the System tab preference groups"""
@@ -117,8 +119,8 @@ class VanillaUserHome(Adw.Bin):
 
         # Application Sources group
         applications_sources_group = Adw.PreferencesGroup()
-        applications_sources_group.set_title(_("Application Sources"))
-        applications_sources_group.set_description(_("Configure application repositories and sources"))
+        applications_sources_group.set_title(_("Preconfigured Bundles"))
+        applications_sources_group.set_description(_("Install and manage preconfigured application bundles"))
         self.applications_page.add(applications_sources_group)
 
     def __build_maintenance_page(self):
@@ -134,6 +136,14 @@ class VanillaUserHome(Adw.Bin):
         maintenance_optimization_group.set_title(_("System Optimization"))
         maintenance_optimization_group.set_description(_("Optimize system performance"))
         self.maintenance_page.add(maintenance_optimization_group)
+
+    def __build_help_page(self):
+        """Build the Help tab preference groups"""
+        # Help Resources group
+        help_resources_group = Adw.PreferencesGroup()
+        help_resources_group.set_title(_("Help Resources"))
+        help_resources_group.set_description(_("Access help and support resources"))
+        self.help_page.add(help_resources_group)
 
     def __on_url_row_activated(self, row, url):
         """Open URL in default browser when a URL row is clicked"""

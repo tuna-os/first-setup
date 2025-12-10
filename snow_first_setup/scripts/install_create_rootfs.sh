@@ -457,6 +457,15 @@ install_create_rootfs() {
         cp /usr/lib/shim/mmx64.efi.signed "$physical_root_path/boot/EFI/snow/mmx64.efi"
         cp /usr/lib/systemd/boot/efi/systemd-bootx64.efi.signed "$physical_root_path/boot/EFI/snow/grubx64.efi"
 
+        # manually append the kargs to boot/loader/entries/bootc_snow-13-1.conf
+        local entry_file="$physical_root_path/boot/loader/entries/bootc_snow-13-1.conf"
+        {
+            echo -n "options "
+            printf "%s " "${all_kargs[@]}"
+            echo ""
+        } >> "$entry_file" || error "Failed to append kargs to boot entry"
+
+
         # create a new boot entry for shim
         efibootmgr --create --disk "$DEVICE" --part 2 --loader '\EFI\snow\shimx64.efi' --label "Snow Secure Boot"
 

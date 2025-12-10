@@ -1,4 +1,25 @@
 #!/bin/bash
+set -euo pipefail
+
+# Cleanup function to ensure mounted filesystems are unmounted
+cleanup() {
+    local exit_code=$?
+    if [ -n "${MOUNTPOINT:-}" ] && [ -d "$MOUNTPOINT" ]; then
+        if mountpoint -q "$MOUNTPOINT" 2>/dev/null; then
+            echo "Unmounting $MOUNTPOINT..."
+            umount "$MOUNTPOINT" 2>/dev/null || true
+        fi
+        rmdir "$MOUNTPOINT" 2>/dev/null || true
+    fi
+    if [ $exit_code -ne 0 ]; then
+        echo "Script failed with exit code $exit_code" >&2
+    fi
+    exit $exit_code
+}
+
+# Set up trap to call cleanup on exit
+trap cleanup EXIT INT TERM
+
 if [ -z "$1" ] || [ -z "$2" ] || [ -z "$3" ]; then
     echo "usage:"
     echo "install-to-disk <image> <filesystem> <device> [fde]"
@@ -38,7 +59,14 @@ if [ "$FDE" == "true" ]; then
     fi
 fi
 
-RUST_LOG=debug bootc \
+# Check that bootc is available
+if ! command -v bootc &> /dev/null; then
+    echo "bootc command not found, cannot proceed with installation"
+    exit 14
+fi
+
+echo "Starting bootc installation to $3..."
+if ! RUST_LOG=debug bootc \
     install \
     to-disk \
     --composefs-backend \
@@ -48,7 +76,11 @@ RUST_LOG=debug bootc \
     --target-imgref "$1" \
     --wipe \
     --bootloader systemd \
-    "$3"
+    "$3"; then
+    echo "bootc installation failed"
+    exit 15
+fi
+echo "bootc installation completed successfully"
 
 # HACK: fix secure boot in bootc
 # now that the install is done, we can fix the efi binaries
@@ -64,7 +96,14 @@ RUST_LOG=debug bootc \
 # Mount the EFI partition from the target device ($3)
 # EFI partition is the second partition, so we use partprobe
 # to ensure the kernel sees it
-partprobe "$3"
+echo "Probing partitions on $3..."
+if ! partprobe "$3"; then
+    echo "Failed to probe partitions on $3"
+    exit 16
+fi
+
+# Give the kernel a moment to recognize the new partitions
+sleep 2
 
 DEVICE="$3"
 
@@ -73,15 +112,39 @@ if [[ "$DEVICE" == *"nvme"* || "$DEVICE" == *"mmcblk"* || "$DEVICE" == *"loop"* 
     DEVICE="${DEVICE}p"
 fi
 
+EFI_PARTITION="${DEVICE}2"
+
+# Verify the EFI partition exists
+if ! [ -b "$EFI_PARTITION" ]; then
+    echo "EFI partition $EFI_PARTITION does not exist or is not a block device"
+    exit 17
+fi
+
+echo "Creating temporary mount point..."
 MOUNTPOINT=$(mktemp -d)
-mount "${DEVICE}2" "$MOUNTPOINT"
+if [ ! -d "$MOUNTPOINT" ]; then
+    echo "Failed to create temporary mount point"
+    exit 18
+fi
+
+echo "Mounting EFI partition $EFI_PARTITION to $MOUNTPOINT..."
+if ! mount "$EFI_PARTITION" "$MOUNTPOINT"; then
+    echo "Failed to mount EFI partition $EFI_PARTITION"
+    rmdir "$MOUNTPOINT" 2>/dev/null || true
+    exit 19
+fi
 
 
 if [ ! -d "$MOUNTPOINT/EFI/BOOT" ]; then
-    mkdir -p "$MOUNTPOINT/EFI/BOOT"
+    echo "Creating $MOUNTPOINT/EFI/BOOT directory..."
+    if ! mkdir -p "$MOUNTPOINT/EFI/BOOT"; then
+        echo "Failed to create EFI/BOOT directory"
+        exit 20
+    fi
 fi
 
 # make sure the source files exists
+echo "Verifying source EFI files..."
 if [ ! -f /usr/lib/systemd/boot/efi/systemd-bootx64.efi.signed ]; then
     echo "systemd-bootx64.efi.signed not found, cannot copy to EFI partition"
     exit 10
@@ -98,20 +161,61 @@ if [ ! -f /usr/lib/shim/mmx64.efi.signed ]; then
     echo "mmx64.efi.signed not found, cannot copy to EFI partition"
     exit 13
 fi
+
 # replicate a debian secureboot efi setup
-mkdir -p "$MOUNTPOINT/EFI/snow"
-cp /usr/lib/shim/shimx64.efi.signed "$MOUNTPOINT/EFI/snow/shimx64.efi"
-cp /usr/lib/shim/fbx64.efi.signed "$MOUNTPOINT/EFI/snow/fbx64.efi"
-cp /usr/lib/shim/mmx64.efi.signed "$MOUNTPOINT/EFI/snow/mmx64.efi"
-cp /usr/lib/systemd/boot/efi/systemd-bootx64.efi.signed "$MOUNTPOINT/EFI/snow/grubx64.efi"
+echo "Creating EFI/snow directory..."
+if ! mkdir -p "$MOUNTPOINT/EFI/snow"; then
+    echo "Failed to create EFI/snow directory"
+    exit 21
+fi
+
+echo "Copying secure boot EFI binaries..."
+if ! cp /usr/lib/shim/shimx64.efi.signed "$MOUNTPOINT/EFI/snow/shimx64.efi"; then
+    echo "Failed to copy shimx64.efi"
+    exit 22
+fi
+if ! cp /usr/lib/shim/fbx64.efi.signed "$MOUNTPOINT/EFI/snow/fbx64.efi"; then
+    echo "Failed to copy fbx64.efi"
+    exit 23
+fi
+if ! cp /usr/lib/shim/mmx64.efi.signed "$MOUNTPOINT/EFI/snow/mmx64.efi"; then
+    echo "Failed to copy mmx64.efi"
+    exit 24
+fi
+if ! cp /usr/lib/systemd/boot/efi/systemd-bootx64.efi.signed "$MOUNTPOINT/EFI/snow/grubx64.efi"; then
+    echo "Failed to copy systemd-bootx64.efi as grubx64.efi"
+    exit 25
+fi
 
 # create a new boot entry for shim
-efibootmgr --create --disk "$3" --part 2 --loader '\EFI\snow\shimx64.efi' --label "Snow Secure Boot"
+echo "Creating EFI boot entry..."
+if command -v efibootmgr &> /dev/null; then
+    if ! efibootmgr --create --disk "$3" --part 2 --loader '\EFI\snow\shimx64.efi' --label "Snow Secure Boot"; then
+        echo "Warning: Failed to create EFI boot entry (continuing anyway)"
+    fi
+else
+    echo "Warning: efibootmgr not found, skipping boot entry creation"
+fi
+
 # finally uncomment the line in loader.conf that sets the timeout
 # so that the boot menu appears, allowing the user to edit the kargs
 # if needed to unlock the disk
-sed -i 's/^#timeout/timeout/' "$MOUNTPOINT/loader/loader.conf"
+if [ -f "$MOUNTPOINT/loader/loader.conf" ]; then
+    echo "Configuring bootloader timeout..."
+    if ! sed -i 's/^#timeout/timeout/' "$MOUNTPOINT/loader/loader.conf"; then
+        echo "Warning: Failed to update loader.conf (continuing anyway)"
+    fi
+else
+    echo "Warning: loader.conf not found at $MOUNTPOINT/loader/loader.conf"
+fi
 
 # clean up
-umount "$MOUNTPOINT"
-rmdir "$MOUNTPOINT"
+echo "Unmounting EFI partition..."
+if ! umount "$MOUNTPOINT"; then
+    echo "Warning: Failed to unmount $MOUNTPOINT cleanly"
+    # Try force unmount as last resort
+    umount -f "$MOUNTPOINT" 2>/dev/null || true
+fi
+rmdir "$MOUNTPOINT" 2>/dev/null || true
+
+echo "Installation completed successfully!"

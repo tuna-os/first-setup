@@ -49,7 +49,7 @@
                         <property name="title" translatable="yes">Encryption</property>
                         <child>
                           <object class="AdwActionRow" id="fde_row">
-                            <property name="title" translatable="yes">Full Disk Encryption (LUKS)</property>
+                            <property name="title" translatable="yes">(Broken) Full Disk Encryption (LUKS)</property>
                             <child type="suffix">
                               <object class="GtkCheckButton" id="fde_checkbox">
                                 <property name="valign">center</property>

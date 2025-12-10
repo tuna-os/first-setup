@@ -154,10 +154,14 @@ class VanillaWindow(Adw.ApplicationWindow):
             from snow_first_setup.views.install_confirm import VanillaInstallConfirm
             from snow_first_setup.views.install_progress import VanillaInstallProgress
             from snow_first_setup.views.install_done import VanillaInstallDone
+            from snow_first_setup.views.conn_check import VanillaConnCheck
+
 
             self.__view_welcome = VanillaWelcomeInstall(self)
             self.__view_welcome.no_next_button = True
             self.__view_welcome.no_back_button = True
+            self.__view_conn_check = VanillaConnCheck(self)
+            self.__view_conn_check.no_back_button = True
             self.__view_language = VanillaLanguage(self)
             self.__view_language.no_back_button = True
             self.__view_keyboard = VanillaKeyboard(self)
@@ -165,6 +169,7 @@ class VanillaWindow(Adw.ApplicationWindow):
             self.__view_installconfirm = VanillaInstallConfirm(self)
 
             self.pages.append(self.__view_welcome)
+            self.pages.append(self.__view_conn_check)
             self.pages.append(self.__view_language)
             self.pages.append(self.__view_keyboard)
             self.pages.append(self.__view_installdisk)

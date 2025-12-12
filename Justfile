@@ -29,11 +29,6 @@ run:
     @echo "Running the application..."
     python3 test.py -d -r
 
-run-user:
-    @echo "Running the application in user mode..."
-    python3 test.py -d -u
-
-
 run-configure:
     @echo "Running the application in configuration mode..."
     python3 test.py -d -c

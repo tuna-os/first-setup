@@ -101,14 +101,6 @@ class FirstSetupApplication(Adw.Application):
             None,
         )
         self.add_main_option(
-            "force-user-mode",
-            ord("u"),
-            GLib.OptionFlags.NONE,
-            GLib.OptionArg.NONE,
-            _("Force the user mode, independant of group."),
-            None,
-        )
-        self.add_main_option(
             "oem-mode",
             ord("o"),
             GLib.OptionFlags.NONE,
@@ -131,8 +123,6 @@ class FirstSetupApplication(Adw.Application):
         self.force_regular = bool(options.lookup_value("force-regular-mode"))
         self.oem_mode = bool(options.lookup_value("oem-mode"))
         self.force_install_mode = bool(options.lookup_value("force-installation-mode"))
-        self.force_user_mode = bool(options.lookup_value("force-user-mode"))
-
 
         backend.set_dry_run(self.dry_run)
 
@@ -197,7 +187,6 @@ class FirstSetupApplication(Adw.Application):
                 configure_system_mode=configure_system_mode,
                 oem_mode=self.oem_mode,
                 install_mode=self.install_mode,
-                user_mode=self.force_user_mode,
             )
         win.present()
 

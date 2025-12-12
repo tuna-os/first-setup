@@ -43,16 +43,15 @@ class VanillaWindow(Adw.ApplicationWindow):
     pages = []
     __current_page_index = 0
 
-    def __init__(self, moduledir: str, configure_system_mode: bool, oem_mode: bool = False, install_mode: bool = False, user_mode: bool = False, **kwargs):
+    def __init__(self, moduledir: str, configure_system_mode: bool, oem_mode: bool = False, install_mode: bool = False, **kwargs):
         super().__init__(**kwargs)
 
         self.moduledir = moduledir
         self.configure_system_mode = configure_system_mode
         self.oem_mode = oem_mode
         self.install_mode = install_mode
-        self.user_mode = user_mode
 
-        self.__build_ui(configure_system_mode, install_mode, user_mode)
+        self.__build_ui(configure_system_mode, install_mode)
         self.__connect_signals()
 
         backend.subscribe_errors(self.__error_received)
@@ -96,7 +95,7 @@ class VanillaWindow(Adw.ApplicationWindow):
         self.btn_next.connect("clicked", self.__on_btn_next_clicked)
         return
 
-    def __build_ui(self, configure_system_mode: bool, install_mode: bool, user_mode: bool):
+    def __build_ui(self, configure_system_mode: bool, install_mode: bool):
 
         if configure_system_mode:
             from snow_first_setup.views.welcome import VanillaWelcome
@@ -181,22 +180,6 @@ class VanillaWindow(Adw.ApplicationWindow):
             self.pages.append(self.__view_installconfirm)
             self.pages.append(self.__view_installprogress)
             self.pages.append(self.__view_installdone)
-
-
-        elif user_mode:
-            print("Building user mode UI.")
-            from snow_first_setup.views.user_home import VanillaUserHome
-
-            self.__view_welcome = VanillaUserHome(self)
-            self.__view_welcome.no_next_button = True
-            self.__view_welcome.no_back_button = True
-
-            self.pages.append(self.__view_welcome)
-
-            # Enable window controls in user mode
-            self.set_deletable(True)
-            # Make content fill the entire window vertically
-            self.content_overlay.set_valign(Gtk.Align.FILL)
 
         else:
             print("Building first-login mode UI.")

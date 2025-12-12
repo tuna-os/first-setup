@@ -76,6 +76,7 @@ if ! RUST_LOG=debug bootc \
     --target-imgref "$1" \
     --wipe \
     --bootloader systemd \
+    --karg "splash" \
     "$3"; then
     echo "bootc installation failed"
     exit 15

@@ -1,223 +1,55 @@
 #!/bin/bash
 set -euo pipefail
 
-# Cleanup function to ensure mounted filesystems are unmounted
-cleanup() {
-    local exit_code=$?
-    if [ -n "${MOUNTPOINT:-}" ] && [ -d "$MOUNTPOINT" ]; then
-        if mountpoint -q "$MOUNTPOINT" 2>/dev/null; then
-            echo "Unmounting $MOUNTPOINT..."
-            umount "$MOUNTPOINT" 2>/dev/null || true
-        fi
-        rmdir "$MOUNTPOINT" 2>/dev/null || true
-    fi
-    if [ $exit_code -ne 0 ]; then
-        echo "Script failed with exit code $exit_code" >&2
-    fi
-    exit $exit_code
-}
-
-# Set up trap to call cleanup on exit
-trap cleanup EXIT INT TERM
+# Install script using nbc (SNOW bootc installer)
+# Outputs JSON Lines for streaming progress to the installer GUI
 
 if [ -z "$1" ] || [ -z "$2" ] || [ -z "$3" ]; then
-    echo "usage:"
-    echo "install-to-disk <image> <filesystem> <device> [fde]"
+    echo '{"type":"error","message":"Missing arguments. Usage: install-to-disk <image> <filesystem> <device> [fde]"}'
     exit 5
 fi
 
 if ! [ "$UID" == "0" ]; then
-    echo "this script must be run with super user privileges"
+    echo '{"type":"error","message":"This script must be run with super user privileges"}'
     exit 6
 fi
 
-
 if ! [ -b "$3" ]; then
-    echo "device '$3' is not a valid block device"
+    echo '{"type":"error","message":"Device '"'$3'"' is not a valid block device"}'
     exit 9
 fi
 
-# Parse FDE parameters
+IMAGE="$1"
+FILESYSTEM="$2"
+DEVICE="$3"
 FDE="${4:-false}"
 
 # Validate FDE parameter
 if [ "$FDE" != "true" ] && [ "$FDE" != "false" ]; then
-    echo "fde parameter must be 'true' or 'false', got: $FDE"
+    echo '{"type":"error","message":"FDE parameter must be '"'true'"' or '"'false'"', got: '"$FDE"'"}'
     exit 7
 fi
 
-BLOCKSETUP="direct"
-if [ "$FDE" == "true" ]; then
-    BLOCKSETUP="tpm2-luks"
-fi
-
-# if FDE is requested, verify that there is a tpm2 device available
-if [ "$FDE" == "true" ]; then
-    if ! [ -e /dev/tpm0 ] && ! [ -e /dev/tpmrm0 ]; then
-        echo "FDE with tpm2-luks requested, but no TPM2 device found"
-        exit 8
-    fi
-fi
-
-# Check that bootc is available
-if ! command -v bootc &> /dev/null; then
-    echo "bootc command not found, cannot proceed with installation"
+# Check that nbc is available
+if ! command -v nbc &> /dev/null; then
+    echo '{"type":"error","message":"nbc command not found, cannot proceed with installation"}'
     exit 14
 fi
 
-echo "Starting bootc installation to $3..."
-if ! RUST_LOG=debug bootc \
-    install \
-    to-disk \
-    --composefs-backend \
-    --block-setup "$BLOCKSETUP" \
-    --filesystem "$2" \
-    --source-imgref docker://"$1" \
-    --target-imgref "$1" \
-    --wipe \
-    --bootloader systemd \
-    --karg "quiet" \
-    --karg "splash" \
-    "$3"; then
-    echo "bootc installation failed"
-    exit 15
-fi
-echo "bootc installation completed successfully"
+# Build nbc install command with --json for streaming output
+NBC_ARGS=(
+    "install"
+    "--image" "$IMAGE"
+    "--device" "$DEVICE"
+    "--filesystem" "$FILESYSTEM"
+    "--json"
+)
 
-# HACK: fix secure boot in bootc
-# now that the install is done, we can fix the efi binaries
-# to support secure boot.
-# This is a workaround for the fact that the bootc installs
-# systemd-boot only. What we require is the signed-shim as
-# the first efi binary, which then loads systemd-boot.
-# shim is hard-coded to load grub, so we'll "fix" that by copying the
-# systemd-boot binaries into the right place with grub's name.
-# HACK ALERT! We're copying the efi binaries from the installer image
-# to the target image. This is not ideal, but it works for now.
-
-# Mount the EFI partition from the target device ($3)
-# EFI partition is the second partition, so we use partprobe
-# to ensure the kernel sees it
-echo "Probing partitions on $3..."
-if ! partprobe "$3"; then
-    echo "Failed to probe partitions on $3"
-    exit 16
+# Add FDE flag if enabled
+if [ "$FDE" == "true" ]; then
+    NBC_ARGS+=("--fde")
 fi
 
-# Give the kernel a moment to recognize the new partitions
-sleep 2
-
-DEVICE="$3"
-
-# adjust partition names for devices that require 'p' before partition number
-if [[ "$DEVICE" == *"nvme"* || "$DEVICE" == *"mmcblk"* || "$DEVICE" == *"loop"* ]]; then
-    DEVICE="${DEVICE}p"
-fi
-
-EFI_PARTITION="${DEVICE}2"
-
-# Verify the EFI partition exists
-if ! [ -b "$EFI_PARTITION" ]; then
-    echo "EFI partition $EFI_PARTITION does not exist or is not a block device"
-    exit 17
-fi
-
-echo "Creating temporary mount point..."
-MOUNTPOINT=$(mktemp -d)
-if [ ! -d "$MOUNTPOINT" ]; then
-    echo "Failed to create temporary mount point"
-    exit 18
-fi
-
-echo "Mounting EFI partition $EFI_PARTITION to $MOUNTPOINT..."
-if ! mount "$EFI_PARTITION" "$MOUNTPOINT"; then
-    echo "Failed to mount EFI partition $EFI_PARTITION"
-    rmdir "$MOUNTPOINT" 2>/dev/null || true
-    exit 19
-fi
-
-
-if [ ! -d "$MOUNTPOINT/EFI/BOOT" ]; then
-    echo "Creating $MOUNTPOINT/EFI/BOOT directory..."
-    if ! mkdir -p "$MOUNTPOINT/EFI/BOOT"; then
-        echo "Failed to create EFI/BOOT directory"
-        exit 20
-    fi
-fi
-
-# make sure the source files exists
-echo "Verifying source EFI files..."
-if [ ! -f /usr/lib/systemd/boot/efi/systemd-bootx64.efi.signed ]; then
-    echo "systemd-bootx64.efi.signed not found, cannot copy to EFI partition"
-    exit 10
-fi
-if [ ! -f /usr/lib/shim/shimx64.efi.signed ]; then
-    echo "shimx64.efi.signed not found, cannot copy to EFI partition"
-    exit 11
-fi
-if [ ! -f /usr/lib/shim/fbx64.efi.signed ]; then
-    echo "fbx64.efi.signed not found, cannot copy to EFI partition"
-    exit 12
-fi
-if [ ! -f /usr/lib/shim/mmx64.efi.signed ]; then
-    echo "mmx64.efi.signed not found, cannot copy to EFI partition"
-    exit 13
-fi
-
-# replicate a debian secureboot efi setup
-echo "Creating EFI/snow directory..."
-if ! mkdir -p "$MOUNTPOINT/EFI/snow"; then
-    echo "Failed to create EFI/snow directory"
-    exit 21
-fi
-
-echo "Copying secure boot EFI binaries..."
-if ! cp /usr/lib/shim/shimx64.efi.signed "$MOUNTPOINT/EFI/snow/shimx64.efi"; then
-    echo "Failed to copy shimx64.efi"
-    exit 22
-fi
-if ! cp /usr/lib/shim/fbx64.efi.signed "$MOUNTPOINT/EFI/snow/fbx64.efi"; then
-    echo "Failed to copy fbx64.efi"
-    exit 23
-fi
-if ! cp /usr/lib/shim/mmx64.efi.signed "$MOUNTPOINT/EFI/snow/mmx64.efi"; then
-    echo "Failed to copy mmx64.efi"
-    exit 24
-fi
-if ! cp /usr/lib/systemd/boot/efi/systemd-bootx64.efi.signed "$MOUNTPOINT/EFI/snow/grubx64.efi"; then
-    echo "Failed to copy systemd-bootx64.efi as grubx64.efi"
-    exit 25
-fi
-
-# create a new boot entry for shim
-echo "Creating EFI boot entry..."
-if command -v efibootmgr &> /dev/null; then
-    if ! efibootmgr --create --disk "$3" --part 2 --loader '\EFI\snow\shimx64.efi' --label "Snow Secure Boot"; then
-        echo "Warning: Failed to create EFI boot entry (continuing anyway)"
-    fi
-else
-    echo "Warning: efibootmgr not found, skipping boot entry creation"
-fi
-
-# finally uncomment the line in loader.conf that sets the timeout
-# so that the boot menu appears, allowing the user to edit the kargs
-# if needed to unlock the disk
-if [ -f "$MOUNTPOINT/loader/loader.conf" ]; then
-    echo "Configuring bootloader timeout..."
-    if ! sed -i 's/^#timeout/timeout/' "$MOUNTPOINT/loader/loader.conf"; then
-        echo "Warning: Failed to update loader.conf (continuing anyway)"
-    fi
-else
-    echo "Warning: loader.conf not found at $MOUNTPOINT/loader/loader.conf"
-fi
-
-# clean up
-echo "Unmounting EFI partition..."
-if ! umount "$MOUNTPOINT"; then
-    echo "Warning: Failed to unmount $MOUNTPOINT cleanly"
-    # Try force unmount as last resort
-    umount -f "$MOUNTPOINT" 2>/dev/null || true
-fi
-rmdir "$MOUNTPOINT" 2>/dev/null || true
-
-echo "Installation completed successfully!"
+# Run nbc install with JSON output streaming directly to stdout
+# nbc outputs JSON Lines (one JSON object per line) for real-time progress
+exec nbc "${NBC_ARGS[@]}"

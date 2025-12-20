@@ -65,11 +65,6 @@ jobs:
         with:
           name: first-setup
 
-      - name: Delete existing continuous release
-        run: gh release delete continuous --yes --cleanup-tag || true
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
       - name: Create Release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

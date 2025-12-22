@@ -70,7 +70,7 @@ NBC_ARGS=(
 # Add FDE options if enabled
 if [ "$FDE" == "true" ]; then
     NBC_ARGS+=("--encrypt")
-    NBC_ARGS+=("--password" "$PASSPHRASE")
+    NBC_ARGS+=("--passphrase" "$PASSPHRASE")
 
     # Add TPM2 auto-unlock if requested
     if [ "$TPM2" == "true" ]; then

@@ -7,17 +7,15 @@
       <object class="AdwToolbarView">
         <property name="content">
           <object class="AdwStatusPage" id="status_page">
-            <property name="icon-name">computer-symbolic</property>
             <property name="title" translatable="yes">Select Installation Disk</property>
-            <property name="description" translatable="yes">Choose the physical disk where the system will be installed. All data on the selected disk will be erased.</property>
+            <property name="description" translatable="yes">All data on the selected disk will be erased.</property>
             <child>
               <object class="AdwClamp">
                 <property name="maximum-size">720</property>
                 <child>
                   <object class="GtkBox">
                     <property name="orientation">vertical</property>
-                    <property name="spacing">24</property>
-                    <property name="margin-top">12</property>
+                    <property name="spacing">12</property>
                     <child>
                       <object class="AdwPreferencesGroup" id="disks_group">
                         <property name="title" translatable="yes">Available Disks</property>
@@ -26,11 +24,10 @@
 
                     <child>
                       <object class="AdwPreferencesGroup">
-                        <property name="title" translatable="yes">Filesystem</property>
+                        <property name="title" translatable="yes">Options</property>
                         <child>
                           <object class="AdwComboRow" id="fs_combo">
-                            <property name="title" translatable="yes">Filesystem Type</property>
-                            <property name="subtitle" translatable="yes">Select the filesystem for the installation</property>
+                            <property name="title" translatable="yes">Filesystem</property>
                             <property name="model">
                               <object class="GtkStringList">
                                 <items>
@@ -41,20 +38,28 @@
                             </property>
                           </object>
                         </child>
-                      </object>
-                    </child>
-
-                    <child>
-                      <object class="AdwPreferencesGroup" id="fde_group">
-                        <property name="title" translatable="yes">Encryption</property>
                         <child>
-                          <object class="AdwActionRow" id="fde_row">
-                            <property name="title" translatable="yes">(Broken) Full Disk Encryption (LUKS)</property>
-                            <child type="suffix">
-                              <object class="GtkCheckButton" id="fde_checkbox">
-                                <property name="valign">center</property>
-                              </object>
-                            </child>
+                          <object class="AdwSwitchRow" id="fde_row">
+                            <property name="title" translatable="yes">Full Disk Encryption</property>
+                            <signal name="notify::active" handler="__on_fde_toggled" swapped="no"/>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="AdwPasswordEntryRow" id="passphrase_entry">
+                            <property name="title" translatable="yes">Passphrase</property>
+                            <property name="visible">false</property>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="AdwPasswordEntryRow" id="passphrase_confirm_entry">
+                            <property name="title" translatable="yes">Confirm Passphrase</property>
+                            <property name="visible">false</property>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="AdwSwitchRow" id="tpm_row">
+                            <property name="title" translatable="yes">TPM Auto-unlock</property>
+                            <property name="visible">false</property>
                           </object>
                         </child>
                       </object>
@@ -62,7 +67,7 @@
 
                     <child>
                       <object class="GtkLabel" id="no_disks_label">
-                        <property name="label" translatable="yes">No removable disks were found. If you expect a disk to appear, ensure it is connected and try again.</property>
+                        <property name="label" translatable="yes">No disks found. Ensure your disk is connected and try again.</property>
                         <property name="visible">false</property>
                         <property name="wrap">true</property>
                         <property name="wrap-mode">word-char</property>

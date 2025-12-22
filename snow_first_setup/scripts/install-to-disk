@@ -47,7 +47,7 @@ NBC_ARGS=(
 
 # Add FDE flag if enabled
 if [ "$FDE" == "true" ]; then
-    NBC_ARGS+=("--fde")
+    NBC_ARGS+=("--encrypt")
 fi
 
 # Run nbc install with JSON output streaming directly to stdout

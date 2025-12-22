@@ -24,6 +24,9 @@ import snow_first_setup.core.backend as backend
 
 logger = logging.getLogger("FirstSetup::Conn_Check")
 
+# Host to test actual internet connectivity
+CONNECTIVITY_CHECK_HOST = "gnome.org"
+
 
 @Gtk.Template(resource_path="/org/frostyard/FirstSetup/gtk/conn-check.ui")
 class VanillaConnCheck(Adw.Bin):
@@ -35,6 +38,7 @@ class VanillaConnCheck(Adw.Bin):
     __network_monitor = None
     __active = False
     __already_skipped = False
+    __checking = False
 
     def __init__(self, window, **kwargs):
         super().__init__(**kwargs)
@@ -42,11 +46,13 @@ class VanillaConnCheck(Adw.Bin):
 
         self.__network_monitor = Gio.NetworkMonitor.get_default()
 
-        self.__network_monitor.connect("network-changed", self.__check_network_status)
+        self.__network_monitor.connect("network-changed", self.__on_network_changed)
         self.btn_settings.connect("clicked", self.__on_btn_settings_clicked)
 
     def set_page_active(self):
         self.__active = True
+        # Disable next button until we verify connectivity
+        self.__window.set_ready(False)
         self.__check_network_status()
 
     def set_page_inactive(self):
@@ -55,26 +61,71 @@ class VanillaConnCheck(Adw.Bin):
     def finish(self):
         return True
 
-    def __check_network_status(self, *args):
+    def __on_network_changed(self, monitor, network_available):
+        """Called when network state changes."""
         if not self.__active:
             return
+        # Disable next button immediately and recheck
+        GLib.idle_add(self.__window.set_ready, False)
+        self.__check_network_status()
 
-        if self.__network_monitor.get_connectivity() == Gio.NetworkConnectivity.FULL:
-            self.__set_network_connected()
-            self.__window.set_ready(True)
-        else:
-            self.__set_network_disconnected()
-            self.__window.set_ready(False)
+    def __check_network_status(self):
+        """Check actual internet connectivity asynchronously."""
+        if self.__checking:
+            return
+        self.__checking = True
+
+        # First do a quick check - if no network route at all, fail fast
+        if self.__network_monitor.get_connectivity() == Gio.NetworkConnectivity.LOCAL:
+            self.__checking = False
+            GLib.idle_add(self.__set_network_disconnected)
+            GLib.idle_add(self.__window.set_ready, False)
+            return
+
+        # Do actual reachability test in background
+        thread = threading.Thread(target=self.__do_connectivity_check)
+        thread.daemon = True
+        thread.start()
+
+    def __do_connectivity_check(self):
+        """Perform actual connectivity test to verify internet access."""
+        try:
+            address = Gio.NetworkAddress.new(CONNECTIVITY_CHECK_HOST, 443)
+            can_reach = self.__network_monitor.can_reach(address, None)
+
+            if can_reach:
+                GLib.idle_add(self.__handle_connected)
+            else:
+                GLib.idle_add(self.__handle_disconnected)
+        except Exception as e:
+            logger.warning(f"Connectivity check failed: {e}")
+            GLib.idle_add(self.__handle_disconnected)
+        finally:
+            self.__checking = False
+
+    def __handle_connected(self):
+        """Handle successful connectivity check."""
+        if not self.__active:
+            return
+        self.__set_network_connected()
+        self.__window.set_ready(True)
+
+    def __handle_disconnected(self):
+        """Handle failed connectivity check."""
+        if not self.__active:
+            return
+        self.__set_network_disconnected()
+        self.__window.set_ready(False)
 
     def __set_network_disconnected(self):
-        logger.info("Internet connection available.")
+        logger.info("Internet connection not available.")
         self.status_page.set_icon_name("network-wired-disconnected-symbolic")
         self.status_page.set_title(_("No Internet Connection!"))
         self.status_page.set_description(_("First Setup requires an active internet connection"))
         self.btn_settings.set_visible(True)
 
     def __set_network_connected(self):
-        logger.info("Internet connection not avaiable.")
+        logger.info("Internet connection available.")
         self.status_page.set_icon_name("emblem-default-symbolic")
         self.status_page.set_title(_("Connection available"))
         self.status_page.set_description(_("You have a working internet connection"))

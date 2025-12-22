@@ -63,7 +63,11 @@ class VanillaInstallConfirm(Adw.Bin):
                 self.fs_label.set_text(_("<none>"))
         if getattr(self, 'fde_label', None) is not None:
             if fde_enabled:
-                self.fde_label.set_text(_("Enabled"))
+                tpm_enabled = getattr(self.__window, "install_tpm_enabled", False)
+                if tpm_enabled:
+                    self.fde_label.set_text(_("Enabled (TPM auto-unlock)"))
+                else:
+                    self.fde_label.set_text(_("Enabled"))
             else:
                 self.fde_label.set_text(_("Disabled"))
 

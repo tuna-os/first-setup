@@ -148,7 +148,9 @@ class VanillaInstallProgress(Adw.Bin):
         fs = getattr(self.__window, "install_target_fs", None)
         image = getattr(self.__window, "install_target_image", None)
         fde_enabled = getattr(self.__window, "install_fde_enabled", False)
-        print("[DEBUG] __run_install params:", device, fs, image, "fde_enabled:", fde_enabled)
+        fde_passphrase = getattr(self.__window, "install_fde_passphrase", None) or ""
+        tpm_enabled = getattr(self.__window, "install_tpm_enabled", False)
+        print("[DEBUG] __run_install params:", device, fs, image, "fde_enabled:", fde_enabled, "tpm_enabled:", tpm_enabled)
 
         if not device or not fs or not image:
             GLib.idle_add(self.__mark_finished, False, _("Missing installation parameters."))
@@ -156,8 +158,15 @@ class VanillaInstallProgress(Adw.Bin):
 
         GLib.idle_add(self.detail_label.set_text, _("Preparing installation…"))
 
-        # Build script arguments with FDE parameters
-        script_args = [image, fs, device, "true" if fde_enabled else "false"]
+        # Build script arguments: image, filesystem, device, fde, passphrase, tpm2
+        script_args = [
+            image,
+            fs,
+            device,
+            "true" if fde_enabled else "false",
+            fde_passphrase if fde_enabled else "",
+            "true" if (fde_enabled and tpm_enabled) else "false"
+        ]
 
         # Use streaming script runner to get real-time JSON updates
         success = backend.run_script_streaming(

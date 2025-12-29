@@ -105,6 +105,7 @@ class VanillaWindow(Adw.ApplicationWindow):
                 from snow_first_setup.views.timezone import VanillaTimezone
                 from snow_first_setup.views.recovery_key import VanillaRecoveryKey
                 print("adding recovery key view for OEM mode")
+            from snow_first_setup.views.conn_check import VanillaConnCheck
             from snow_first_setup.views.hostname import VanillaHostname
             from snow_first_setup.views.user import VanillaUser
             from snow_first_setup.views.core_progress import VanillaCoreProgress
@@ -114,6 +115,8 @@ class VanillaWindow(Adw.ApplicationWindow):
             self.__view_welcome = VanillaWelcome(self)
             self.__view_welcome.no_next_button = True
             self.__view_welcome.no_back_button = True
+            self.__view_conn_check = VanillaConnCheck(self)
+            self.__view_conn_check.no_back_button = True
             if self.oem_mode:
                 self.__view_language = VanillaLanguage(self)
                 self.__view_language.no_back_button = True
@@ -133,6 +136,7 @@ class VanillaWindow(Adw.ApplicationWindow):
             self.__view_logout.no_next_button = True
 
             self.pages.append(self.__view_welcome)
+            self.pages.append(self.__view_conn_check)
             if self.oem_mode:
                 self.pages.append(self.__view_language)
                 self.pages.append(self.__view_keyboard)

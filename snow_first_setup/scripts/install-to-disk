@@ -58,6 +58,10 @@ if [ "$ROOT_PASSWORD_FILE" != "/dev/null" ]; then
         echo '{"type":"error","message":"Root password file is empty: '"$ROOT_PASSWORD_FILE"'"}'
         exit 12
     fi
+    if ! grep -q '[^[:space:]]' < "$ROOT_PASSWORD_FILE"; then
+        echo '{"type":"error","message":"Root password file contains only whitespace: '"$ROOT_PASSWORD_FILE"'"}'
+        exit 13
+    fi
 fi
 
 # If FDE is enabled, require a passphrase

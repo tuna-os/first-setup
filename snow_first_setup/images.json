@@ -1,16 +1,26 @@
 {
     "images": [
-    {
-        "snow": {
-            "target": "ghcr.io/frostyard/snow:latest",
-            "description": "standard",
-            "display_name": "Snow Linux"
-        },
-        "snowfield": {
-            "target": "ghcr.io/frostyard/snowfield:latest",
-            "description": "Surface",
-            "display_name": "Snowfield Linux"
+        {
+            "snow": {
+                "target": "ghcr.io/frostyard/snow:latest",
+                "description": "standard",
+                "display_name": "Snow Linux"
+            },
+            "snowfield": {
+                "target": "ghcr.io/frostyard/snowfield:latest",
+                "description": "Surface",
+                "display_name": "Snowfield Linux"
+            },
+            "snowdrift": {
+                "target": "ghcr.io/frostyard/snowdrift:latest",
+                "description": "server",
+                "display_name": "Snowdrift Server"
+            },
+            "cayo": {
+                "target": "ghcr.io/frostyard/cayo:latest",
+                "description": "server",
+                "display_name": "Cayo Server"
+            }
         }
-    }
-]
+    ]
 }

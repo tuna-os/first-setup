@@ -166,14 +166,13 @@ class VanillaInstallProgress(Adw.Bin):
         root_password_path = "/dev/null"
         if root_password:
             try:
-                # Create a temporary file with restrictive permissions
+                # Create a temporary file and immediately harden its permissions
                 fd, root_password_path = tempfile.mkstemp(prefix="snow-root-pw-", text=True)
+                os.fchmod(fd, 0o600)
                 self.__root_password_file = root_password_path
-                # Write password to file
-                os.write(fd, root_password.encode('utf-8'))
-                os.close(fd)
-                # Ensure only root can read it
-                os.chmod(root_password_path, 0o600)
+                # Write password to file and ensure the descriptor is closed
+                with os.fdopen(fd, "w", encoding="utf-8") as f:
+                    f.write(root_password)
                 print(f"[DEBUG] Created root password file: {root_password_path}")
             except Exception as e:
                 print(f"[ERROR] Failed to create root password file: {e}")

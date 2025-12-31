@@ -71,6 +71,26 @@
                     </child>
 
                     <child>
+                      <object class="AdwPreferencesGroup" id="root_password_group">
+                        <property name="title" translatable="yes">Root Password</property>
+                        <property name="description" translatable="yes">Set the root password for system administration</property>
+                        <property name="visible">False</property>
+                        <child>
+                          <object class="AdwPasswordEntryRow" id="root_password_entry">
+                            <property name="title" translatable="yes">Root Password</property>
+                            <property name="subtitle" translatable="yes">Use a strong password, ideally at least 8 characters with a mix of letters, numbers, and symbols.</property>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="AdwPasswordEntryRow" id="root_password_confirm_entry">
+                            <property name="title" translatable="yes">Confirm Root Password</property>
+                            <property name="subtitle" translatable="yes">Re-enter the root password to confirm it matches.</property>
+                          </object>
+                        </child>
+                      </object>
+                    </child>
+
+                    <child>
                       <object class="AdwPreferencesGroup">
                         <property name="title" translatable="yes">Confirmation</property>
                         <child>

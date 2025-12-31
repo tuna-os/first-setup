@@ -3,6 +3,8 @@
 import json
 import threading
 import time
+import tempfile
+import os
 
 from gi.repository import Gtk, Adw, GLib, Gio
 
@@ -27,6 +29,7 @@ class VanillaInstallProgress(Adw.Bin):
         self.__current_step = 0
         self.__total_steps = 0
         self.__has_progress = False  # True when we have percentage-based progress
+        self.__root_password_file = None  # Track temp file for cleanup
 
         # Debug: verify resource presence and child realization
         try:
@@ -150,7 +153,8 @@ class VanillaInstallProgress(Adw.Bin):
         fde_enabled = getattr(self.__window, "install_fde_enabled", False)
         fde_passphrase = getattr(self.__window, "install_fde_passphrase", None) or ""
         tpm_enabled = getattr(self.__window, "install_tpm_enabled", False)
-        print("[DEBUG] __run_install params:", device, fs, image, "fde_enabled:", fde_enabled, "tpm_enabled:", tpm_enabled)
+        root_password = getattr(self.__window, "install_root_password", None)
+        print("[DEBUG] __run_install params:", device, fs, image, "fde_enabled:", fde_enabled, "tpm_enabled:", tpm_enabled, "root_password:", bool(root_password))
 
         if not device or not fs or not image:
             GLib.idle_add(self.__mark_finished, False, _("Missing installation parameters."))
@@ -158,14 +162,32 @@ class VanillaInstallProgress(Adw.Bin):
 
         GLib.idle_add(self.detail_label.set_text, _("Preparing installation…"))
 
-        # Build script arguments: image, filesystem, device, fde, passphrase, tpm2
+        # Handle root password: create temp file if password is set, otherwise use /dev/null
+        root_password_path = "/dev/null"
+        if root_password:
+            try:
+                # Create a temporary file and immediately harden its permissions
+                fd, root_password_path = tempfile.mkstemp(prefix="snow-root-pw-", text=True)
+                os.fchmod(fd, 0o600)
+                self.__root_password_file = root_password_path
+                # Write password to file and ensure the descriptor is closed
+                with os.fdopen(fd, "w", encoding="utf-8") as f:
+                    f.write(root_password)
+                print(f"[DEBUG] Created root password file: {root_password_path}")
+            except Exception as e:
+                print(f"[ERROR] Failed to create root password file: {e}")
+                GLib.idle_add(self.__mark_finished, False, _("Failed to prepare root password."))
+                return
+
+        # Build script arguments: image, filesystem, device, fde, passphrase, tpm2, root_password_file
         script_args = [
             image,
             fs,
             device,
             "true" if fde_enabled else "false",
             fde_passphrase if fde_enabled else "",
-            "true" if (fde_enabled and tpm_enabled) else "false"
+            "true" if (fde_enabled and tpm_enabled) else "false",
+            root_password_path
         ]
 
         # Use streaming script runner to get real-time JSON updates
@@ -175,6 +197,15 @@ class VanillaInstallProgress(Adw.Bin):
             root=True,
             line_callback=self.__handle_json_line
         )
+
+        # Clean up root password file if created
+        if self.__root_password_file and os.path.exists(self.__root_password_file):
+            try:
+                os.unlink(self.__root_password_file)
+                print(f"[DEBUG] Cleaned up root password file: {self.__root_password_file}")
+                self.__root_password_file = None
+            except Exception as e:
+                print(f"[WARNING] Failed to clean up root password file: {e}")
 
         # Handle Snowfield image special case
         if success and "snowfield" in image:

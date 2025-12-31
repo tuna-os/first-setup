@@ -17,6 +17,9 @@ class VanillaInstallConfirm(Adw.Bin):
     fs_label = Gtk.Template.Child()
     fde_label = Gtk.Template.Child()
     image_combo = Gtk.Template.Child()
+    root_password_group = Gtk.Template.Child()
+    root_password_entry = Gtk.Template.Child()
+    root_password_confirm_entry = Gtk.Template.Child()
     confirm_checkbox = Gtk.Template.Child()
     cancel_button = Gtk.Template.Child()
 
@@ -28,11 +31,15 @@ class VanillaInstallConfirm(Adw.Bin):
         self.__image_text = ""
         self.__image_target = None
         self.__confirm_checked = False
+        self.__root_password = ""
+        self.__root_password_confirm = ""
 
         # connect signals to update readiness
         try:
             self.confirm_checkbox.connect("toggled", self.__on_input_changed)
             self.cancel_button.connect("clicked", self.__on_cancel_clicked)
+            self.root_password_entry.connect("changed", self.__on_input_changed)
+            self.root_password_confirm_entry.connect("changed", self.__on_input_changed)
         except Exception:
             pass
 
@@ -78,6 +85,15 @@ class VanillaInstallConfirm(Adw.Bin):
             pass
         self.__confirm_checked = False
 
+        # Clear password fields
+        try:
+            self.root_password_entry.set_text("")
+            self.root_password_confirm_entry.set_text("")
+            self.__root_password = ""
+            self.__root_password_confirm = ""
+        except Exception:
+            pass
+
         # Trigger __on_input_changed to populate __image_target from current combo selection
         self.__on_input_changed()
 
@@ -115,15 +131,61 @@ class VanillaInstallConfirm(Adw.Bin):
         except Exception:
             self.__confirm_checked = False
 
+        # Update password fields visibility and cache passwords
+        self.__update_password_visibility()
+        try:
+            self.__root_password = self.root_password_entry.get_text()
+            self.__root_password_confirm = self.root_password_confirm_entry.get_text()
+        except Exception:
+            self.__root_password = ""
+            self.__root_password_confirm = ""
+
         print(f"[DEBUG] Final state: image_target={self.__image_target}, confirm={self.__confirm_checked}")
         self.__validate()
+
+    def __update_password_visibility(self):
+        """Show password fields only for specific images that require a root password"""
+        try:
+            # Define which image targets require a root password (canonical, lowercased IDs)
+            password_required_targets = ("cayo", "snowdrift")
+
+            needs_root_password = False
+            target_lower = None
+            text_lower = None
+
+            if self.__image_target:
+                target_lower = self.__image_target.lower()
+
+            if self.__image_text:
+                text_lower = self.__image_text.lower()
+
+            # Prefer the canonical target identifier if available; fall back to display text.
+            if target_lower is not None:
+                needs_root_password = target_lower in password_required_targets
+            elif text_lower is not None:
+                needs_root_password = text_lower in password_required_targets
+            self.root_password_group.set_visible(needs_root_password)
+            print(f"[DEBUG] Root password visibility: {needs_root_password} (target={self.__image_target}, text={self.__image_text})")
+        except Exception as e:
+            print(f"[DEBUG] Exception in __update_password_visibility: {e}")
 
     def __validate(self):
         # enable Next only if image target specified and confirmation checked
         ok = False
         try:
             ok = bool(self.__image_target) and self.__confirm_checked and self.__image_target != _("No images found")
-        except Exception:
+
+            # If root password is visible, validate that passwords match and are not empty
+            if ok and self.root_password_group.get_visible():
+                passwords_valid = (
+                    self.__root_password and
+                    self.__root_password_confirm and
+                    self.__root_password == self.__root_password_confirm
+                )
+                ok = ok and passwords_valid
+                print(f"[DEBUG] Password validation: passwords_valid={passwords_valid}, pw_len={len(self.__root_password)}, confirm_len={len(self.__root_password_confirm)}, match={self.__root_password == self.__root_password_confirm}")
+        except Exception as e:
+            print(f"[DEBUG] Exception in __validate: {e}")
             ok = False
         self.__window.set_ready(ok)
 
@@ -148,8 +210,16 @@ class VanillaInstallConfirm(Adw.Bin):
         try:
             self.__window.install_target_image = image
             print(f"[DEBUG] Successfully set window.install_target_image = {image}")
+
+            # Store root password if it was collected
+            if self.root_password_group.get_visible() and self.__root_password:
+                self.__window.install_root_password = self.__root_password
+                print(f"[DEBUG] Successfully set window.install_root_password (length={len(self.__root_password)})")
+            else:
+                self.__window.install_root_password = None
+                print(f"[DEBUG] No root password needed or collected")
         except Exception as e:
-            print("[exception] Failed to set install_target_image:", e)
+            print("[exception] Failed to set install parameters:", e)
             pass
         return True
 

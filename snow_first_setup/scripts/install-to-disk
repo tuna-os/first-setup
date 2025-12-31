@@ -4,16 +4,17 @@ set -euo pipefail
 # Install script using nbc (SNOW bootc installer)
 # Outputs JSON Lines for streaming progress to the installer GUI
 #
-# Usage: install-to-disk <image> <filesystem> <device> [fde] [passphrase] [tpm2]
-#   image       - container image reference
-#   filesystem  - filesystem type (btrfs, ext4)
-#   device      - block device path
-#   fde         - "true" or "false" for full disk encryption (default: false)
-#   passphrase  - encryption passphrase (required if fde=true)
-#   tpm2        - "true" or "false" for TPM2 auto-unlock (default: false)
+# Usage: install-to-disk <image> <filesystem> <device> [fde] [passphrase] [tpm2] [root_password_file]
+#   image              - container image reference
+#   filesystem         - filesystem type (btrfs, ext4)
+#   device             - block device path
+#   fde                - "true" or "false" for full disk encryption (default: false)
+#   passphrase         - encryption passphrase (required if fde=true)
+#   tpm2               - "true" or "false" for TPM2 auto-unlock (default: false)
+#   root_password_file - path to file containing root password, or "/dev/null" (default: /dev/null)
 
 if [ -z "${1:-}" ] || [ -z "${2:-}" ] || [ -z "${3:-}" ]; then
-    echo '{"type":"error","message":"Missing arguments. Usage: install-to-disk <image> <filesystem> <device> [fde] [passphrase] [tpm2]"}'
+    echo '{"type":"error","message":"Missing arguments. Usage: install-to-disk <image> <filesystem> <device> [fde] [passphrase] [tpm2] [root_password_file]"}'
     exit 5
 fi
 
@@ -33,6 +34,7 @@ DEVICE="$3"
 FDE="${4:-false}"
 PASSPHRASE="${5:-}"
 TPM2="${6:-false}"
+ROOT_PASSWORD_FILE="${7:-/dev/null}"
 
 # Validate FDE parameter
 if [ "$FDE" != "true" ] && [ "$FDE" != "false" ]; then
@@ -44,6 +46,22 @@ fi
 if [ "$TPM2" != "true" ] && [ "$TPM2" != "false" ]; then
     echo '{"type":"error","message":"TPM2 parameter must be '"'true'"' or '"'false'"', got: '"$TPM2"'"}'
     exit 8
+fi
+
+# Validate root password file if specified
+if [ "$ROOT_PASSWORD_FILE" != "/dev/null" ]; then
+    if [ ! -f "$ROOT_PASSWORD_FILE" ]; then
+        echo '{"type":"error","message":"Root password file does not exist: '"$ROOT_PASSWORD_FILE"'"}'
+        exit 11
+    fi
+    if [ ! -s "$ROOT_PASSWORD_FILE" ]; then
+        echo '{"type":"error","message":"Root password file is empty: '"$ROOT_PASSWORD_FILE"'"}'
+        exit 12
+    fi
+    if ! grep -q '[^[:space:]]' < "$ROOT_PASSWORD_FILE"; then
+        echo '{"type":"error","message":"Root password file contains only whitespace: '"$ROOT_PASSWORD_FILE"'"}'
+        exit 13
+    fi
 fi
 
 # If FDE is enabled, require a passphrase
@@ -76,6 +94,11 @@ if [ "$FDE" == "true" ]; then
     if [ "$TPM2" == "true" ]; then
         NBC_ARGS+=("--tpm2")
     fi
+fi
+
+# Add root password file if provided and not /dev/null
+if [ "$ROOT_PASSWORD_FILE" != "/dev/null" ]; then
+    NBC_ARGS+=("--root-password-file" "$ROOT_PASSWORD_FILE")
 fi
 
 # Run nbc install with JSON output streaming directly to stdout

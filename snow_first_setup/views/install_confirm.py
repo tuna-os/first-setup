@@ -144,16 +144,26 @@ class VanillaInstallConfirm(Adw.Bin):
         self.__validate()
 
     def __update_password_visibility(self):
-        """Show password fields only for cayo or snowdrift images"""
+        """Show password fields only for specific images that require a root password"""
         try:
-            # Check if the target image is cayo or snowdrift
-            needs_root_password = False
-            if self.__image_target:
-                # Check both the target string and the display text
-                target_lower = self.__image_target.lower()
-                text_lower = self.__image_text.lower()
-                needs_root_password = 'cayo' in target_lower or 'snowdrift' in target_lower or 'cayo' in text_lower or 'snowdrift' in text_lower
+            # Define which image targets require a root password (canonical, lowercased IDs)
+            password_required_targets = ("cayo", "snowdrift")
 
+            needs_root_password = False
+            target_lower = None
+            text_lower = None
+
+            if self.__image_target:
+                target_lower = self.__image_target.lower()
+
+            if self.__image_text:
+                text_lower = self.__image_text.lower()
+
+            # Prefer the canonical target identifier if available; fall back to display text.
+            if target_lower is not None:
+                needs_root_password = target_lower in password_required_targets
+            elif text_lower is not None:
+                needs_root_password = text_lower in password_required_targets
             self.root_password_group.set_visible(needs_root_password)
             print(f"[DEBUG] Root password visibility: {needs_root_password} (target={self.__image_target}, text={self.__image_text})")
         except Exception as e:

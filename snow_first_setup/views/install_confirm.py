@@ -38,8 +38,8 @@ class VanillaInstallConfirm(Adw.Bin):
         try:
             self.confirm_checkbox.connect("toggled", self.__on_input_changed)
             self.cancel_button.connect("clicked", self.__on_cancel_clicked)
-            self.root_password_entry.connect("changed", self.__on_input_changed)
-            self.root_password_confirm_entry.connect("changed", self.__on_input_changed)
+            self.root_password_entry.connect("changed", self.__on_password_changed)
+            self.root_password_confirm_entry.connect("changed", self.__on_password_changed)
         except Exception:
             pass
 
@@ -109,21 +109,16 @@ class VanillaInstallConfirm(Adw.Bin):
             selected_idx = self.image_combo.get_selected()
             if selected_idx != Gtk.INVALID_LIST_POSITION and hasattr(self, "_VanillaInstallConfirm__images_list"):
                 display = self.__images_list[selected_idx]
-                print(f"[DEBUG] __on_input_changed: display={display}")
                 self.__image_text = display.strip()
                 # map display name to target reference if available
                 if hasattr(self, "_VanillaInstallConfirm__image_map") and self.__image_text in self.__image_map:
                     self.__image_target = self.__image_map[self.__image_text]
-                    print(f"[DEBUG] Mapped '{self.__image_text}' -> '{self.__image_target}'")
                 else:
                     self.__image_target = self.__image_text
-                    print(f"[DEBUG] No map found, using display as target: '{self.__image_target}'")
             else:
                 self.__image_text = ""
                 self.__image_target = None
-                print("[DEBUG] No display text, clearing target")
-        except Exception as e:
-            print(f"[DEBUG] Exception in __on_input_changed: {e}")
+        except Exception:
             self.__image_text = ""
             self.__image_target = None
         try:
@@ -140,7 +135,16 @@ class VanillaInstallConfirm(Adw.Bin):
             self.__root_password = ""
             self.__root_password_confirm = ""
 
-        print(f"[DEBUG] Final state: image_target={self.__image_target}, confirm={self.__confirm_checked}")
+        self.__validate()
+
+    def __on_password_changed(self, *args):
+        """Handle password field changes without re-evaluating image visibility"""
+        try:
+            self.__root_password = self.root_password_entry.get_text()
+            self.__root_password_confirm = self.root_password_confirm_entry.get_text()
+        except Exception:
+            self.__root_password = ""
+            self.__root_password_confirm = ""
         self.__validate()
 
     def __update_password_visibility(self):
@@ -159,15 +163,14 @@ class VanillaInstallConfirm(Adw.Bin):
             if self.__image_text:
                 text_lower = self.__image_text.lower()
 
-            # Prefer the canonical target identifier if available; fall back to display text.
+            # Check if any of the required targets appear in the image target or display text
             if target_lower is not None:
-                needs_root_password = target_lower in password_required_targets
+                needs_root_password = any(t in target_lower for t in password_required_targets)
             elif text_lower is not None:
-                needs_root_password = text_lower in password_required_targets
+                needs_root_password = any(t in text_lower for t in password_required_targets)
             self.root_password_group.set_visible(needs_root_password)
-            print(f"[DEBUG] Root password visibility: {needs_root_password} (target={self.__image_target}, text={self.__image_text})")
-        except Exception as e:
-            print(f"[DEBUG] Exception in __update_password_visibility: {e}")
+        except Exception:
+            pass
 
     def __validate(self):
         # enable Next only if image target specified and confirmation checked
@@ -175,51 +178,65 @@ class VanillaInstallConfirm(Adw.Bin):
         try:
             ok = bool(self.__image_target) and self.__confirm_checked and self.__image_target != _("No images found")
 
-            # If root password is visible, validate that passwords match and are not empty
-            if ok and self.root_password_group.get_visible():
+            # If root password is visible, validate that passwords match and meet requirements
+            if self.root_password_group.get_visible():
+                min_length = 8
+                pw_len = len(self.__root_password)
+                confirm_len = len(self.__root_password_confirm)
+                pw_long_enough = pw_len >= min_length
+                passwords_match = self.__root_password == self.__root_password_confirm
+
+                # Update visual feedback on password fields
+                self.__update_password_entry_style(
+                    self.root_password_entry,
+                    is_valid=pw_long_enough or pw_len == 0  # Don't show error when empty
+                )
+                self.__update_password_entry_style(
+                    self.root_password_confirm_entry,
+                    is_valid=(passwords_match and pw_long_enough) or confirm_len == 0  # Don't show error when empty
+                )
+
                 passwords_valid = (
                     self.__root_password and
                     self.__root_password_confirm and
-                    self.__root_password == self.__root_password_confirm
+                    pw_long_enough and
+                    passwords_match
                 )
                 ok = ok and passwords_valid
-                print(f"[DEBUG] Password validation: passwords_valid={passwords_valid}, pw_len={len(self.__root_password)}, confirm_len={len(self.__root_password_confirm)}, match={self.__root_password == self.__root_password_confirm}")
-        except Exception as e:
-            print(f"[DEBUG] Exception in __validate: {e}")
+        except Exception:
             ok = False
         self.__window.set_ready(ok)
+
+    def __update_password_entry_style(self, entry, is_valid: bool):
+        """Add or remove error styling on password entry"""
+        try:
+            style_context = entry.get_style_context()
+            if is_valid:
+                style_context.remove_class("error")
+            else:
+                style_context.add_class("error")
+        except Exception:
+            pass
 
     def finish(self):
         # Do not run install here; progress page will handle it.
         # Ensure parameters exist so we can proceed to progress page.
-        print(f"[DEBUG] finish() called, checking params...")
-        print(f"[DEBUG] self.__image_target = {self.__image_target}")
-        print(f"[DEBUG] self.__image_text = {self.__image_text}")
-        print(f"[DEBUG] self.__confirm_checked = {self.__confirm_checked}")
-
         device = getattr(self.__window, "install_target_device", None)
         fs = getattr(self.__window, "install_target_fs", None)
-        image = self.__image_target  # Direct access instead of getattr
-
-        print(f"[DEBUG] Retrieved: device={device}, fs={fs}, image={image}")
+        image = self.__image_target
 
         if not device or not fs or not image:
-            print("[DEBUG] fail validation failed; device=", device, "fs=", fs, "image=", image)
             return False
         # Persist selected image target on the window so the progress page can access it.
         try:
             self.__window.install_target_image = image
-            print(f"[DEBUG] Successfully set window.install_target_image = {image}")
 
             # Store root password if it was collected
             if self.root_password_group.get_visible() and self.__root_password:
                 self.__window.install_root_password = self.__root_password
-                print(f"[DEBUG] Successfully set window.install_root_password (length={len(self.__root_password)})")
             else:
                 self.__window.install_root_password = None
-                print(f"[DEBUG] No root password needed or collected")
-        except Exception as e:
-            print("[exception] Failed to set install parameters:", e)
+        except Exception:
             pass
         return True
 
@@ -236,13 +253,10 @@ class VanillaInstallConfirm(Adw.Bin):
             "/etc/snow/images.json",
             os.path.abspath(os.path.join(self.__window.moduledir, "images.json")),
         ]
-        print("Loading images from candidates:", candidates)
         images = []  # list of display strings
         image_map = {}  # display -> target reference
         for path in candidates:
-            print("Checking path:", path)
             if os.path.exists(path):
-                print("Found image list at:", path)
                 try:
                     with open(path, 'r', encoding='utf-8') as f:
                         data = json.load(f)
@@ -257,7 +271,7 @@ class VanillaInstallConfirm(Adw.Bin):
                     # 1. List[str]
                     # 2. List[dict] with keys reference/image/ref/name
                     # 3. List[dict] whose entries are nested objects keyed by a short name containing target/display_name
-                    def _format_description(desc: str) -> str:
+                    def _format_description(desc) -> str:
                         if not desc:
                             return ""
                         d = desc.strip()
@@ -310,7 +324,6 @@ class VanillaInstallConfirm(Adw.Bin):
         # Store image_map and images list BEFORE populating combo so __on_input_changed can access it
         self.__image_map = image_map
         self.__images_list = images
-        print(f"[DEBUG] Image map created with {len(image_map)} entries: {list(image_map.keys())}")
 
         # Populate combo with StringList model for AdwComboRow
         try:
@@ -322,8 +335,7 @@ class VanillaInstallConfirm(Adw.Bin):
                 self.image_combo.set_selected(0)
                 # Manually trigger __on_input_changed to populate __image_target
                 self.__on_input_changed()
-        except Exception as e:
-            print(f"[DEBUG] Exception populating combo: {e}")
+        except Exception:
             pass
 
         # If no images found, add a disabled placeholder

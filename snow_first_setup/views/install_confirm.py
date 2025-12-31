@@ -158,7 +158,6 @@ class VanillaInstallConfirm(Adw.Bin):
             print(f"[DEBUG] Root password visibility: {needs_root_password} (target={self.__image_target}, text={self.__image_text})")
         except Exception as e:
             print(f"[DEBUG] Exception in __update_password_visibility: {e}")
-            pass
 
     def __validate(self):
         # enable Next only if image target specified and confirmation checked

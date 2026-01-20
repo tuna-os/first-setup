@@ -19,6 +19,26 @@
             "target": "ghcr.io/frostyard/cayo:latest",
             "description": "server",
             "display_name": "Cayo Server"
+        },
+        {
+            "target": "ghcr.io/frostyard/snosi-snow:latest",
+            "description": "standard",
+            "display_name": "Snosi Snow"
+        },
+        {
+            "target": "ghcr.io/frostyard/snosi-snow-loaded:latest",
+            "description": "standard",
+            "display_name": "Snosi Snow Loaded"
+        },
+        {
+            "target": "ghcr.io/frostyard/snosi-snowfield:latest",
+            "description": "standard",
+            "display_name": "Snosi Snowfield"
+        },
+        {
+            "target": "ghcr.io/frostyard/snosi-snowfield-loaded:latest",
+            "description": "standard",
+            "display_name": "Snosi Snowfield Loaded"
         }
     ]
 }

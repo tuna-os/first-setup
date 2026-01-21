@@ -26,7 +26,7 @@
             "display_name": "Snosi Snow"
         },
         {
-            "target": "ghcr.io/frostyard/snosi-snow-loaded:latest",
+            "target": "ghcr.io/frostyard/snosi-snowloaded:latest",
             "description": "standard",
             "display_name": "Snosi Snow Loaded"
         },
@@ -36,7 +36,7 @@
             "display_name": "Snosi Snowfield"
         },
         {
-            "target": "ghcr.io/frostyard/snosi-snowfield-loaded:latest",
+            "target": "ghcr.io/frostyard/snosi-snowfieldloaded:latest",
             "description": "standard",
             "display_name": "Snosi Snowfield Loaded"
         }

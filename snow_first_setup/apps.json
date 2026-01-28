@@ -12,10 +12,6 @@
     ],
     "utilities": [
         {
-            "name": "DistroShelf",
-            "id": "com.ranfdev.DistroShelf"
-        },
-        {
             "name": "Boxes",
             "id": "org.gnome.Boxes"
         },

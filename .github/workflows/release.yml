@@ -54,8 +54,13 @@ jobs:
 
       - name: Move files
         run: |
-          mkdir -p /run/host/dist
-          mv ../snow-first-setup_*.deb  /run/host/dist/
+          mkdir -p ./dist
+          mv ../snow-first-setup_*.deb  ./dist/
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: first-setup-repogen
+          path: ./dist/*.deb
 
   release:
     runs-on: ubuntu-latest
@@ -87,6 +92,11 @@ jobs:
         with:
           subject-path: "snow-first-setup.deb, checksums.txt"
 
+      - name: Download Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: first-setup-repogen
+
       - name: Publish to frostyard repo
         uses: frostyard/repogen/.github/actions/publish-to-r2@main
         with:
@@ -98,7 +108,7 @@ jobs:
           cloudflare-zone: ${{ secrets.CLOUDFLARE_ZONE }}
           cloudflare-api-token: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           gpg-private-key: ${{ secrets.REPOGEN_GPG_KEY }}
-          packages-dir: /dist
+          packages-dir: ./dist
           package-type: deb # or sysext
           base-url: https://repository.frostyard.org # required for sysext
 

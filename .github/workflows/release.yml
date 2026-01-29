@@ -28,11 +28,12 @@ jobs:
       - name: Install build dependencies
         run: |
           apt-get update
-          apt-get install -y awscli
+          apt-get install -y awscli git-buildpackage
           apt-get build-dep -y .
 
       - name: Build .deb package
         run: |
+          gbp dch --release
           dpkg-buildpackage
           cp ../snow-first-setup_*.deb snow-first-setup.deb
 

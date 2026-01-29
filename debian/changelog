@@ -1,4 +1,38 @@
-snow-first-setup (0.1.1) UNRELEASED; urgency=medium
+snow-first-setup (0.2.8) stable; urgency=medium
+
+  * feat: deb release
+  * feat: install with nbc
+  * fix: continuous release
+  * fix: continuous release
+  * fix: connectivity check
+  * feat(install): add FDE passphrase and TPM auto-unlock support
+  * fix: nbc install params
+  * fix: password -> passphrase
+  * fix: repo dispatch to snow
+  * fix: connectivity check in configure mode
+  * fix: no more recovery key
+  * feat: support cayo/snowdrift and root password
+  * Update snow_first_setup/scripts/install-to-disk
+  * Update snow_first_setup/gtk/install-confirm.ui
+  * Apply suggestion from @Copilot
+  * Apply suggestion from @Copilot
+  * Apply suggestion from @Copilot
+  * Update snow_first_setup/images.json
+  * fix: my broken late night copilot duel
+  * feat: snosi images
+  * fix: image names
+  * fix: remove distroshelf from user install
+  * fix: ci and image names
+  * fix: copy the first time, then move
+  * fix: add awscli
+  * fix: add awscli
+  * fix: try gbp dch
+  * fix: try gbp dch
+  * fix: try gbp dch
+
+ -- Brian Ketelsen <bketelsen@gmail.com>  Thu, 29 Jan 2026 11:50:19 -0500
+
+snow-first-setup (0.2.7) stable; urgency=medium
 
   [ Brian Ketelsen ]
   * little changes
@@ -69,6 +103,35 @@ snow-first-setup (0.1.1) UNRELEASED; urgency=medium
   * chore: remove 'user' mode, replaced by ChairLift
   * fix: splash karg
   * fix: quiet splash
+  * feat: deb release
+  * feat: install with nbc
+  * fix: continuous release
+  * fix: continuous release
+  * fix: connectivity check
+  * feat(install): add FDE passphrase and TPM auto-unlock support
+  * fix: nbc install params
+  * fix: password -> passphrase
+  * fix: repo dispatch to snow
+  * fix: connectivity check in configure mode
+  * fix: no more recovery key
+  * feat: support cayo/snowdrift and root password
+  * Update snow_first_setup/scripts/install-to-disk
+  * Update snow_first_setup/gtk/install-confirm.ui
+  * Apply suggestion from @Copilot
+  * Apply suggestion from @Copilot
+  * Apply suggestion from @Copilot
+  * Update snow_first_setup/images.json
+  * fix: my broken late night copilot duel
+  * feat: snosi images
+  * fix: image names
+  * fix: remove distroshelf from user install
+  * fix: ci and image names
+  * fix: copy the first time, then move
+  * fix: add awscli
+  * fix: add awscli
+  * fix: try gbp dch
+  * fix: try gbp dch
+  * fix: try gbp dch
 
   [ Kyle Gospodnetich ]
   * feat: Automatically enroll surface linux key for snowfield images
@@ -82,7 +145,7 @@ snow-first-setup (0.1.1) UNRELEASED; urgency=medium
   * fix: Pass snowlinux password twice
   * fix: Replace gnome photos with modern counterpart
 
- -- Brian Ketelsen <bketelsen@gmail.com>  Fri, 12 Dec 2025 20:05:17 -0500
+ -- Brian Ketelsen <bketelsen@gmail.com>  Thu, 29 Jan 2026 11:49:07 -0500
 
 first-setup (0.1.0) unstable; urgency=medium
  

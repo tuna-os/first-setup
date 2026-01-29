@@ -25,6 +25,10 @@ clean:
     @echo "Cleaning build artifacts..."
     dpkg-buildpackage -Tclean
 
+changelog:
+    @echo "Generating changelog..."
+    gbp dch --release --debian-branch main -N 0.2.8 -D stable
+
 run:
     @echo "Running the application..."
     python3 test.py -d -r

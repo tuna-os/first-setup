@@ -32,6 +32,8 @@ jobs:
           apt-get build-dep -y .
 
       - name: Build .deb package
+        env:
+          EMAIL: bketelsen@gmail.com
         run: |
           gbp dch --release
           dpkg-buildpackage

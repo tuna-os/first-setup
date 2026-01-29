@@ -33,7 +33,7 @@ jobs:
       - name: Build .deb package
         run: |
           dpkg-buildpackage
-          mv ../snow-first-setup_*.deb snow-first-setup.deb
+          cp ../snow-first-setup_*.deb snow-first-setup.deb
 
       - name: Calculate and Save Checksums
         run: |

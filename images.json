@@ -1,16 +1,24 @@
 {
     "images": [
-    {
-        "snow": {
+        {
             "target": "ghcr.io/frostyard/snow:latest",
             "description": "standard",
             "display_name": "Snow Linux"
         },
-        "snowfield": {
+        {
             "target": "ghcr.io/frostyard/snowfield:latest",
             "description": "Surface",
             "display_name": "Snowfield Linux"
+        },
+        {
+            "target": "ghcr.io/frostyard/snowloaded:latest",
+            "description": "standard",
+            "display_name": "Snow Loaded"
+        },
+        {
+            "target": "ghcr.io/frostyard/snowfieldloaded:latest",
+            "description": "standard",
+            "display_name": "Snowfield Loaded"
         }
-    }
-]
+    ]
 }

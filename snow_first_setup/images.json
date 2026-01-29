@@ -11,34 +11,14 @@
             "display_name": "Snowfield Linux"
         },
         {
-            "target": "ghcr.io/frostyard/snowdrift:latest",
-            "description": "server",
-            "display_name": "Snowdrift Server"
-        },
-        {
-            "target": "ghcr.io/frostyard/cayo:latest",
-            "description": "server",
-            "display_name": "Cayo Server"
-        },
-        {
-            "target": "ghcr.io/frostyard/snosi-snow:latest",
+            "target": "ghcr.io/frostyard/snowloaded:latest",
             "description": "standard",
-            "display_name": "Snosi Snow"
+            "display_name": "Snow Loaded"
         },
         {
-            "target": "ghcr.io/frostyard/snosi-snowloaded:latest",
+            "target": "ghcr.io/frostyard/snowfieldloaded:latest",
             "description": "standard",
-            "display_name": "Snosi Snow Loaded"
-        },
-        {
-            "target": "ghcr.io/frostyard/snosi-snowfield:latest",
-            "description": "standard",
-            "display_name": "Snosi Snowfield"
-        },
-        {
-            "target": "ghcr.io/frostyard/snosi-snowfieldloaded:latest",
-            "description": "standard",
-            "display_name": "Snosi Snowfield Loaded"
+            "display_name": "Snowfield Loaded"
         }
     ]
 }

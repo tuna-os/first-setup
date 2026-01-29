@@ -1,5 +1,5 @@
 project('org.frostyard.FirstSetup',
-          version: 'v0.1.0+git',
+          version: 'VTESTING',
     meson_version: '>= 0.59.0',
   default_options: [ 'warning_level=2',
                      'werror=false',

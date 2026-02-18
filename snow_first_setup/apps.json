@@ -58,10 +58,6 @@
             "id": "org.mozilla.firefox"
         },
         {
-            "name": "Microsoft Edge",
-            "id": "com.microsoft.Edge"
-        },
-        {
             "name": "Google Chrome",
             "id": "com.google.Chrome",
             "active": false

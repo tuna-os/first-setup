@@ -1,3 +1,9 @@
+snow-first-setup (0.2.15) stable; urgency=medium
+
+  * fix: bump
+
+ -- Brian Ketelsen <bketelsen@gmail.com>  Fri, 27 Feb 2026 14:04:13 -0500
+
 snow-first-setup (0.2.14) stable; urgency=medium
 
   * fix: proper changelog

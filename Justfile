@@ -39,6 +39,7 @@ bump: changelog
     echo "Bumping to v${VERSION}..."
     git add -A
     git commit -m "chore: release ${VERSION}"
+    git push origin main
     git tag "${VERSION}"
     git push origin "${VERSION}"
 

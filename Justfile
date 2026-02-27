@@ -26,8 +26,11 @@ clean:
     dpkg-buildpackage -Tclean
 
 changelog:
-    @echo "Generating changelog..."
-    gbp dch --release --debian-branch main -N $(svu next) -D stable
+    #!/usr/bin/env bash
+    set -euo pipefail
+    VERSION=$(svu next)
+    echo "Generating changelog for ${VERSION}..."
+    gchlog --write
 
 bump: changelog
     #!/usr/bin/env bash
@@ -35,9 +38,9 @@ bump: changelog
     VERSION=$(svu next)
     echo "Bumping to v${VERSION}..."
     git add -A
-    git commit -m "chore: release v${VERSION}"
-    git tag "v${VERSION}"
-    git push origin "v${VERSION}"
+    git commit -m "chore: release ${VERSION}"
+    git tag "${VERSION}"
+    git push origin "${VERSION}"
 
 run:
     @echo "Running the application..."

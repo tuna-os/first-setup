@@ -27,7 +27,17 @@ clean:
 
 changelog:
     @echo "Generating changelog..."
-    gbp dch --release --debian-branch main -N 0.2.8 -D stable
+    gbp dch --release --debian-branch main -N $(svu next) -D stable
+
+bump: changelog
+    #!/usr/bin/env bash
+    set -euo pipefail
+    VERSION=$(svu next)
+    echo "Bumping to v${VERSION}..."
+    git add -A
+    git commit -m "chore: release v${VERSION}"
+    git tag "v${VERSION}"
+    git push origin "v${VERSION}"
 
 run:
     @echo "Running the application..."

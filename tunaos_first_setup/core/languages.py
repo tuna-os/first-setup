@@ -9,8 +9,13 @@ country_codes_by_region = {}
 locales_by_country_code = {}
 locale_name_by_locale = {}
 
-with open('/usr/share/i18n/SUPPORTED', 'r') as file:
-    lines = file.readlines()
+_SUPPORTED_PATH = '/usr/share/i18n/SUPPORTED'
+_FALLBACK_SUPPORTED = "en_US.UTF-8 UTF-8\n"
+try:
+    with open(_SUPPORTED_PATH, 'r') as file:
+        lines = file.readlines()
+except FileNotFoundError:
+    lines = _FALLBACK_SUPPORTED.splitlines(keepends=True)
     for line in lines:
         parts = line.split(" ")
         if len(parts) < 2 or "UTF-8" not in parts[1]:

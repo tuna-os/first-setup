@@ -1,0 +1,200 @@
+#!/bin/bash
+set -euo pipefail
+
+# TunaOS installer — direct partitioning + bootc install to-filesystem
+# Outputs JSON Lines for streaming progress to the installer GUI
+#
+# Usage: install-to-disk <image> <device> <filesystem> [fde] [passphrase] [tpm2]
+#   image       - container image reference (containers-storage:localhost/...)
+#   device      - block device path (/dev/sdX, /dev/nvme0n1, etc.)
+#   filesystem  - filesystem type (xfs, btrfs, ext4)
+#   fde         - "true" or "false" for full disk encryption (default: false)
+#   passphrase  - encryption passphrase (required if fde=true)
+#   tpm2        - "true" or "false" for TPM2 auto-unlock (default: false)
+
+# ── JSON progress helpers ──────────────────────────────────────────────────────
+
+progress_step() {
+    local step="$1" total="$2" name="$3"
+    echo "{\"type\":\"step\",\"step\":${step},\"total_steps\":${total},\"step_name\":\"${name}\"}"
+}
+
+progress_error() {
+    echo "{\"type\":\"error\",\"message\":\"${1}\"}"
+}
+
+progress_complete() {
+    echo "{\"type\":\"complete\",\"message\":\"${1:-Installation complete!}\"}"
+}
+
+# ── Argument validation ────────────────────────────────────────────────────────
+
+if [ -z "${1:-}" ] || [ -z "${2:-}" ] || [ -z "${3:-}" ]; then
+    progress_error "Missing arguments. Usage: install-to-disk <image> <device> <filesystem> [fde] [passphrase] [tpm2]"
+    exit 5
+fi
+
+if [ "$UID" != "0" ]; then
+    progress_error "This script must be run with super user privileges"
+    exit 6
+fi
+
+IMAGE="$1"
+DEVICE="$2"
+FILESYSTEM="$3"
+FDE="${4:-false}"
+PASSPHRASE="${5:-}"
+TPM2="${6:-false}"
+
+if ! [ -b "$DEVICE" ]; then
+    progress_error "Device '${DEVICE}' is not a valid block device"
+    exit 9
+fi
+
+if [ "$FDE" != "true" ] && [ "$FDE" != "false" ]; then
+    progress_error "FDE parameter must be 'true' or 'false', got: ${FDE}"
+    exit 7
+fi
+
+if [ "$TPM2" != "true" ] && [ "$TPM2" != "false" ]; then
+    progress_error "TPM2 parameter must be 'true' or 'false', got: ${TPM2}"
+    exit 8
+fi
+
+if [ "$FDE" == "true" ] && [ -z "$PASSPHRASE" ]; then
+    progress_error "FDE is enabled but no passphrase provided"
+    exit 10
+fi
+
+# Validate filesystem type
+case "$FILESYSTEM" in
+    xfs|btrfs|ext4) ;;
+    *)
+        progress_error "Unsupported filesystem: ${FILESYSTEM}. Supported: xfs, btrfs, ext4"
+        exit 11
+        ;;
+esac
+
+# ── Determine total steps ─────────────────────────────────────────────────────
+
+if [ "$FDE" == "true" ]; then
+    TOTAL_STEPS=5
+else
+    TOTAL_STEPS=4
+fi
+
+# ── Mount point ────────────────────────────────────────────────────────────────
+
+MOUNT="/tmp/installmnt"
+rm -rf "$MOUNT"
+mkdir -p "$MOUNT"
+
+# Cleanup handler
+cleanup() {
+    umount -R "$MOUNT" 2>/dev/null || true
+    if [ "$FDE" == "true" ]; then
+        cryptsetup close tunaos-root 2>/dev/null || true
+    fi
+    rm -rf "$MOUNT"
+}
+trap cleanup EXIT
+
+# ── Step 1: Partition the disk ─────────────────────────────────────────────────
+
+progress_step 1 "$TOTAL_STEPS" "Creating partition table"
+
+# Unmount anything on the target device
+umount -R "${DEVICE}"* 2>/dev/null || true
+
+parted "$DEVICE" --script mklabel gpt
+parted "$DEVICE" --align=optimal --script mkpart ESP fat32 1MiB 1024MiB
+parted "$DEVICE" --script set 1 boot on
+parted "$DEVICE" --script type 1 c12a7328-f81f-11d2-ba4b-00a0c93ec93b
+parted "$DEVICE" --script mkpart ROOT "$FILESYSTEM" 1024MiB 100%
+parted "$DEVICE" --script type 2 4F68BCE3-E8CD-4DB1-96E7-FBCAF984B709
+partprobe "$DEVICE"
+
+# Handle NVMe/mmcblk/loop partition naming (need 'p' separator)
+PART_PREFIX="$DEVICE"
+if [[ "$DEVICE" == *"nvme"* || "$DEVICE" == *"mmcblk"* || "$DEVICE" == *"loop"* ]]; then
+    PART_PREFIX="${DEVICE}p"
+fi
+
+udevadm settle
+
+# ── Step 2: Format partitions ─────────────────────────────────────────────────
+
+progress_step 2 "$TOTAL_STEPS" "Formatting partitions"
+
+mkfs.fat -F 32 -n EFI-SYSTEM "${PART_PREFIX}1"
+
+ROOT_DEV="${PART_PREFIX}2"
+
+# ── Step 3 (conditional): Set up encryption ────────────────────────────────────
+
+if [ "$FDE" == "true" ]; then
+    progress_step 3 "$TOTAL_STEPS" "Setting up encryption"
+
+    echo -n "$PASSPHRASE" | cryptsetup luksFormat --type luks2 "${PART_PREFIX}2" -
+    echo -n "$PASSPHRASE" | cryptsetup open "${PART_PREFIX}2" tunaos-root -
+    ROOT_DEV="/dev/mapper/tunaos-root"
+
+    # Enroll TPM2 if requested and hardware is available
+    if [ "$TPM2" == "true" ]; then
+        if [ -e /sys/class/tpm/tpm0 ] && command -v systemd-cryptenroll &>/dev/null; then
+            echo -n "$PASSPHRASE" | systemd-cryptenroll \
+                --tpm2-device=auto --tpm2-pcrs=0+7 \
+                "${PART_PREFIX}2" --password || {
+                echo '{"type":"warning","message":"TPM2 enrollment failed, continuing with passphrase-only encryption"}'
+            }
+        else
+            echo '{"type":"warning","message":"TPM2 requested but hardware not available, skipping enrollment"}'
+        fi
+    fi
+fi
+
+# Format root partition
+case "$FILESYSTEM" in
+    xfs)    mkfs.xfs -f -L root "$ROOT_DEV" ;;
+    btrfs)  mkfs.btrfs -f -L root "$ROOT_DEV" ;;
+    ext4)   mkfs.ext4 -F -L root "$ROOT_DEV" ;;
+esac
+
+# ── Step N: Install TunaOS ────────────────────────────────────────────────────
+
+if [ "$FDE" == "true" ]; then
+    INSTALL_STEP=4
+else
+    INSTALL_STEP=3
+fi
+progress_step "$INSTALL_STEP" "$TOTAL_STEPS" "Installing TunaOS (this may take a few minutes)"
+
+mount "$ROOT_DEV" "$MOUNT"
+mkdir -p "${MOUNT}/boot"
+mount "${PART_PREFIX}1" "${MOUNT}/boot"
+
+bootc install to-filesystem \
+    --source-imgref "$IMAGE" \
+    "$MOUNT"
+
+# ── Final step: Finalize ──────────────────────────────────────────────────────
+
+if [ "$FDE" == "true" ]; then
+    FINAL_STEP=5
+else
+    FINAL_STEP=4
+fi
+progress_step "$FINAL_STEP" "$TOTAL_STEPS" "Finalizing"
+
+# Sync and unmount
+sync
+umount -R "$MOUNT"
+
+if [ "$FDE" == "true" ]; then
+    cryptsetup close tunaos-root
+fi
+
+# Clear the trap since we cleaned up manually
+trap - EXIT
+
+progress_complete "Installation complete!"

@@ -23,18 +23,18 @@ install_data(
 )
 
 install_data(
-    'org.frostyard.FirstSetup.policy',
+    'org.tunaos.FirstSetup.policy',
     install_dir: join_paths(get_option('prefix'), get_option('datadir'), 'polkit-1', 'actions')
 )
 
 install_data(
-    'org.frostyard.FirstSetup.rules',
+    'org.tunaos.FirstSetup.rules',
     install_dir: join_paths(get_option('prefix'), get_option('datadir'), 'polkit-1', 'rules.d')
 )
 
 desktop_file = i18n.merge_file(
-  input: 'org.frostyard.FirstSetup.desktop.in',
-  output: 'org.frostyard.FirstSetup.desktop',
+  input: 'org.tunaos.FirstSetup.desktop.in',
+  output: 'org.tunaos.FirstSetup.desktop',
   type: 'desktop',
   po_dir: '../po',
   install: true,
@@ -44,7 +44,7 @@ desktop_file = i18n.merge_file(
 custom_target(
   'install-autostart-desktop',
   input: desktop_file,
-  output: 'org.frostyard.FirstSetup.autostart.desktop',
+  output: 'org.tunaos.FirstSetup.autostart.desktop',
   command: ['cp', '@INPUT@', '@OUTPUT@'],
   install_dir: join_paths(get_option('sysconfdir'), 'skel', '.config', 'autostart'),
   build_by_default: true,

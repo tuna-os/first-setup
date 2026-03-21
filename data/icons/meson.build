@@ -5,16 +5,16 @@ symbolic_dir = join_paths('hicolor', 'symbolic', 'apps')
 
 
 install_data(
-  join_paths(scalable_dir, 'org.frostyard.FirstSetup.svg'),
+  join_paths(scalable_dir, 'org.tunaos.FirstSetup.svg'),
   install_dir: join_paths(icons_dir, scalable_dir)
 )
 
 install_data(
-  join_paths(scalable_dir, 'org.frostyard.FirstSetup-flower.svg'),
+  join_paths(scalable_dir, 'org.tunaos.FirstSetup-fish.svg'),
   install_dir: join_paths(icons_dir, scalable_dir)
 )
 
 install_data(
-  join_paths(symbolic_dir, 'org.frostyard.FirstSetup-symbolic.svg'),
+  join_paths(symbolic_dir, 'org.tunaos.FirstSetup-symbolic.svg'),
   install_dir: join_paths(icons_dir, symbolic_dir)
 )

@@ -33,6 +33,7 @@
                                 <items>
                                   <item translatable="yes">xfs</item>
                                   <item translatable="yes">btrfs</item>
+                                  <item translatable="yes">btrfs (subvolumes)</item>
                                   <item translatable="yes">ext4</item>
                                 </items>
                               </object>

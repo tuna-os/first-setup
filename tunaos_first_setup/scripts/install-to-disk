@@ -1,15 +1,16 @@
 #!/bin/bash
 set -euo pipefail
 
-# TunaOS installer — direct partitioning + bootc install to-filesystem
+# TunaOS installer — bootc-based disk installation
 # Outputs JSON Lines for streaming progress to the installer GUI
 #
 # Usage: install-to-disk <image> <device> <filesystem> [fde] [passphrase] [tpm2]
 #   image       - container image reference (containers-storage:localhost/...)
 #   device      - block device path (/dev/sdX, /dev/nvme0n1, etc.)
 #   filesystem  - filesystem type (xfs, btrfs, ext4)
+#               - "btrfs-subvols" enables btrfs with @, @home, @snapshots subvolumes
 #   fde         - "true" or "false" for full disk encryption (default: false)
-#   passphrase  - encryption passphrase (required if fde=true)
+#   passphrase  - encryption passphrase (required if fde=true, not tpm2-only)
 #   tpm2        - "true" or "false" for TPM2 auto-unlock (default: false)
 
 # ── JSON progress helpers ──────────────────────────────────────────────────────
@@ -61,56 +62,123 @@ if [ "$TPM2" != "true" ] && [ "$TPM2" != "false" ]; then
     exit 8
 fi
 
-if [ "$FDE" == "true" ] && [ -z "$PASSPHRASE" ]; then
-    progress_error "FDE is enabled but no passphrase provided"
+if [ "$FDE" == "true" ] && [ "$TPM2" != "true" ] && [ -z "$PASSPHRASE" ]; then
+    progress_error "FDE is enabled but no passphrase provided (and TPM2 is off)"
     exit 10
 fi
 
-# Validate filesystem type
-case "$FILESYSTEM" in
+# Normalise filesystem: btrfs-subvols is btrfs + subvolume layout
+BTRFS_SUBVOLS=false
+FS_TYPE="$FILESYSTEM"
+if [ "$FILESYSTEM" == "btrfs-subvols" ]; then
+    FS_TYPE="btrfs"
+    BTRFS_SUBVOLS=true
+fi
+
+case "$FS_TYPE" in
     xfs|btrfs|ext4) ;;
     *)
-        progress_error "Unsupported filesystem: ${FILESYSTEM}. Supported: xfs, btrfs, ext4"
+        progress_error "Unsupported filesystem: ${FILESYSTEM}. Supported: xfs, btrfs, btrfs-subvols, ext4"
         exit 11
         ;;
 esac
 
-# ── Determine total steps ─────────────────────────────────────────────────────
+# ── Temp space for bootc layer import ─────────────────────────────────────────
+# The live rootfs overlay is tiny (~800 MB).  bootc and containers/image write
+# large temporary blobs to /var/tmp (largest single layer can be 2-3 GB).
+# Mount a 4 GB tmpfs over /var/tmp so the import always succeeds.
+# This is safe: the tmpfs is freed automatically when the process exits.
+if mountpoint -q /var/tmp; then
+    umount /var/tmp 2>/dev/null || true
+fi
+mount -t tmpfs -o size=4G tmpfs /var/tmp
 
-if [ "$FDE" == "true" ]; then
-    TOTAL_STEPS=5
-else
-    TOTAL_STEPS=4
+# ── Detect live-environment SELinux state ─────────────────────────────────────
+# Live ISOs boot with enforcing=0 which causes bootc/ostree to fail setting
+# security.selinux xattrs (EOPNOTSUPP). --disable-selinux lets the install
+# proceed; the installed system re-enables SELinux on first boot via relabeling.
+BOOTC_SELINUX_FLAG=""
+if grep -q 'enforcing=0\|selinux=0' /proc/cmdline 2>/dev/null; then
+    BOOTC_SELINUX_FLAG="--disable-selinux"
 fi
 
-# ── Mount point ────────────────────────────────────────────────────────────────
+# ── Unmount any existing mounts on the target device ─────────────────────────
+umount -R /tmp/install_mount 2>/dev/null || true
+umount -R /run/bootc/mounts/rootfs 2>/dev/null || true
+umount -R /run/bootc/storage 2>/dev/null || true
+# Lazy-unmount any lingering device mounts
+for part in "${DEVICE}"*; do
+    umount -l "$part" 2>/dev/null || true
+done
 
-MOUNT="/tmp/installmnt"
-rm -rf "$MOUNT"
+MOUNT="/tmp/install_mount"
 mkdir -p "$MOUNT"
 
-# Cleanup handler
+# ── Cleanup trap ──────────────────────────────────────────────────────────────
 cleanup() {
+    sync || true
     umount -R "$MOUNT" 2>/dev/null || true
-    if [ "$FDE" == "true" ]; then
+    if [ "$FDE" == "true" ] && cryptsetup status tunaos-root &>/dev/null; then
         cryptsetup close tunaos-root 2>/dev/null || true
     fi
-    rm -rf "$MOUNT"
+    umount /var/tmp 2>/dev/null || true
 }
 trap cleanup EXIT
+
+# ══════════════════════════════════════════════════════════════════════════════
+# FAST PATH: no FDE passphrase, no btrfs subvolumes
+# → delegate entirely to `bootc install to-disk` for the simplest/most reliable
+#   path (handles EFI, BIOS boot, partitioning, grub all automatically).
+# ══════════════════════════════════════════════════════════════════════════════
+
+if [ "$FDE" != "true" ] || [ "$TPM2" == "true" ]; then
+    # bootc install to-disk handles everything
+    STEPS=2
+    BLOCK_SETUP="direct"
+    if [ "$FDE" == "true" ] && [ "$TPM2" == "true" ]; then
+        BLOCK_SETUP="tpm2-luks"
+        STEPS=3
+    fi
+
+    progress_step 1 "$STEPS" "Preparing disk"
+
+    # shellcheck disable=SC2086
+    bootc install to-disk \
+        --source-imgref "$IMAGE" \
+        --wipe \
+        --filesystem "$FS_TYPE" \
+        --block-setup "$BLOCK_SETUP" \
+        ${BOOTC_SELINUX_FLAG} \
+        "$DEVICE" 2>&1
+
+    if [ "$BLOCK_SETUP" == "tpm2-luks" ]; then
+        progress_step 3 "$STEPS" "Finalizing"
+    fi
+
+    progress_step "$STEPS" "$STEPS" "Installation complete"
+    progress_complete
+    exit 0
+fi
+
+# ══════════════════════════════════════════════════════════════════════════════
+# CUSTOM PATH: passphrase FDE and/or btrfs subvolumes
+# → manual partition + format + bootc install to-filesystem
+# ══════════════════════════════════════════════════════════════════════════════
+
+TOTAL_STEPS=4
+if [ "$FDE" == "true" ]; then
+    TOTAL_STEPS=5
+fi
 
 # ── Step 1: Partition the disk ─────────────────────────────────────────────────
 
 progress_step 1 "$TOTAL_STEPS" "Creating partition table"
 
-# Unmount anything on the target device
-umount -R "${DEVICE}"* 2>/dev/null || true
-
 parted "$DEVICE" --script mklabel gpt
 parted "$DEVICE" --align=optimal --script mkpart ESP fat32 1MiB 1024MiB
 parted "$DEVICE" --script set 1 boot on
 parted "$DEVICE" --script type 1 c12a7328-f81f-11d2-ba4b-00a0c93ec93b
-parted "$DEVICE" --script mkpart ROOT "$FILESYSTEM" 1024MiB 100%
+parted "$DEVICE" --script mkpart ROOT "$FS_TYPE" 1024MiB 100%
 parted "$DEVICE" --script type 2 4F68BCE3-E8CD-4DB1-96E7-FBCAF984B709
 partprobe "$DEVICE"
 
@@ -130,7 +198,7 @@ mkfs.fat -F 32 -n EFI-SYSTEM "${PART_PREFIX}1"
 
 ROOT_DEV="${PART_PREFIX}2"
 
-# ── Step 3 (conditional): Set up encryption ────────────────────────────────────
+# ── Step 3 (optional): Set up LUKS encryption ─────────────────────────────────
 
 if [ "$FDE" == "true" ]; then
     progress_step 3 "$TOTAL_STEPS" "Setting up encryption"
@@ -139,26 +207,47 @@ if [ "$FDE" == "true" ]; then
     echo -n "$PASSPHRASE" | cryptsetup open "${PART_PREFIX}2" tunaos-root -
     ROOT_DEV="/dev/mapper/tunaos-root"
 
-    # Enroll TPM2 if requested and hardware is available
     if [ "$TPM2" == "true" ]; then
         if [ -e /sys/class/tpm/tpm0 ] && command -v systemd-cryptenroll &>/dev/null; then
             echo -n "$PASSPHRASE" | systemd-cryptenroll \
                 --tpm2-device=auto --tpm2-pcrs=0+7 \
-                "${PART_PREFIX}2" --password || {
-                echo '{"type":"warning","message":"TPM2 enrollment failed, continuing with passphrase-only encryption"}'
-            }
+                "${PART_PREFIX}2" --password || \
+                echo '{"type":"warning","message":"TPM2 enrollment failed; passphrase-only encryption active"}'
         else
-            echo '{"type":"warning","message":"TPM2 requested but hardware not available, skipping enrollment"}'
+            echo '{"type":"warning","message":"TPM2 requested but hardware unavailable; skipping TPM2 enroll"}'
         fi
     fi
 fi
 
-# Format root partition
-case "$FILESYSTEM" in
-    xfs)    mkfs.xfs -f -L root "$ROOT_DEV" ;;
-    btrfs)  mkfs.btrfs -f -L root "$ROOT_DEV" ;;
-    ext4)   mkfs.ext4 -F -L root "$ROOT_DEV" ;;
+# ── Format root filesystem ────────────────────────────────────────────────────
+
+case "$FS_TYPE" in
+    xfs)   mkfs.xfs -f -L root "$ROOT_DEV" ;;
+    ext4)  mkfs.ext4 -F -L root "$ROOT_DEV" ;;
+    btrfs) mkfs.btrfs -f -L root "$ROOT_DEV" ;;
 esac
+
+# ── Mount root (with optional btrfs subvolumes) ───────────────────────────────
+
+if [ "$BTRFS_SUBVOLS" == "true" ]; then
+    # Create top-level subvolumes then mount @ as root
+    mount "$ROOT_DEV" "$MOUNT"
+    btrfs subvolume create "${MOUNT}/@"
+    btrfs subvolume create "${MOUNT}/@home"
+    btrfs subvolume create "${MOUNT}/@snapshots"
+    umount "$MOUNT"
+
+    BTRFS_OPTS="rw,noatime,compress=zstd,subvol=@"
+    mount -o "$BTRFS_OPTS" "$ROOT_DEV" "$MOUNT"
+    mkdir -p "${MOUNT}/home" "${MOUNT}/.snapshots"
+    mount -o "rw,noatime,compress=zstd,subvol=@home" "$ROOT_DEV" "${MOUNT}/home"
+    mount -o "rw,noatime,compress=zstd,subvol=@snapshots" "$ROOT_DEV" "${MOUNT}/.snapshots"
+else
+    mount "$ROOT_DEV" "$MOUNT"
+fi
+
+mkdir -p "${MOUNT}/boot/efi"
+mount "${PART_PREFIX}1" "${MOUNT}/boot/efi"
 
 # ── Step N: Install TunaOS ────────────────────────────────────────────────────
 
@@ -169,12 +258,10 @@ else
 fi
 progress_step "$INSTALL_STEP" "$TOTAL_STEPS" "Installing TunaOS (this may take a few minutes)"
 
-mount "$ROOT_DEV" "$MOUNT"
-mkdir -p "${MOUNT}/boot"
-mount "${PART_PREFIX}1" "${MOUNT}/boot"
-
+# shellcheck disable=SC2086
 bootc install to-filesystem \
     --source-imgref "$IMAGE" \
+    ${BOOTC_SELINUX_FLAG} \
     "$MOUNT"
 
 # ── Final step: Finalize ──────────────────────────────────────────────────────
@@ -186,7 +273,6 @@ else
 fi
 progress_step "$FINAL_STEP" "$TOTAL_STEPS" "Finalizing"
 
-# Sync and unmount
 sync
 umount -R "$MOUNT"
 
@@ -194,7 +280,6 @@ if [ "$FDE" == "true" ]; then
     cryptsetup close tunaos-root
 fi
 
-# Clear the trap since we cleaned up manually
 trap - EXIT
 
 progress_complete "Installation complete!"

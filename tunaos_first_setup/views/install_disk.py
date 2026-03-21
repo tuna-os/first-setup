@@ -80,9 +80,10 @@ class VanillaInstallDisk(Adw.Bin):
             except Exception:
                 self.__fs_map = None
         else:
-            # Default model from UI: xfs, btrfs, ext4 — select btrfs (index 1)
+            # Default model from UI: xfs, btrfs, btrfs (subvolumes), ext4
+            # Select btrfs-subvols (index 2) as default for yellowfin/bonito
             try:
-                self.fs_combo.set_selected(1)  # btrfs default for yellowfin/bonito
+                self.fs_combo.set_selected(2)
             except Exception:
                 pass
             self.__fs_map = None
@@ -137,13 +138,9 @@ class VanillaInstallDisk(Adw.Bin):
             if self.__fs_map:
                 fs = self.__fs_map.get(selected_idx)
             else:
-                # Default model: 0=xfs, 1=btrfs, 2=ext4
-                if selected_idx == 0:
-                    fs = "xfs"
-                elif selected_idx == 1:
-                    fs = "btrfs"
-                elif selected_idx == 2:
-                    fs = "ext4"
+                # Default model: 0=xfs, 1=btrfs, 2=btrfs-subvols, 3=ext4
+                fs_options = ["xfs", "btrfs", "btrfs-subvols", "ext4"]
+                fs = fs_options[selected_idx] if selected_idx < len(fs_options) else "xfs"
         except Exception:
             fs = None
         if not fs:

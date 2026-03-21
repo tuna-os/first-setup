@@ -1,0 +1,15 @@
+polkit.addRule(function(action, subject) {
+    if (action.id.startsWith("org.tunaos.FirstSetup.scripts") && subject.isInGroup("tunaos-first-setup")) {
+        polkit.log("action=" + action);
+        polkit.log("subject=" + subject);
+        return polkit.Result.YES;
+    }
+});
+
+// Grant liveuser passwordless authorization for install actions (live ISO session)
+polkit.addRule(function(action, subject) {
+    if (action.id.startsWith("org.tunaos.FirstSetup.scripts") && subject.user === "liveuser") {
+        polkit.log("liveuser action=" + action);
+        return polkit.Result.YES;
+    }
+});

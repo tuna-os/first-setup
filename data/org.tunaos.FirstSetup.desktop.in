@@ -1,0 +1,9 @@
+[Desktop Entry]
+Name=TunaOS Installer
+Exec=tunaos-first-setup
+Icon=org.tunaos.FirstSetup
+Terminal=false
+Type=Application
+Categories=System;GTK;
+StartupNotify=true
+NoDisplay=true

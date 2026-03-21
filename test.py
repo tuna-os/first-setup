@@ -1,4 +1,4 @@
-# snow-first-setup.in
+# tunaos-first-setup.in
 #
 # Copyright 2025 mirkobrombin
 #
@@ -23,7 +23,7 @@ VERSION = 'testing'
 path_of_this_file = os.path.dirname(os.path.realpath(__file__))
 pkgdatadir = os.path.join(path_of_this_file)
 localedir = os.path.join(path_of_this_file, "localegen")
-moduledir = os.path.join(path_of_this_file, "snow_first_setup")
+moduledir = os.path.join(path_of_this_file, "tunaos_first_setup")
 
 def setup_translations():
     import pathlib
@@ -33,11 +33,11 @@ def setup_translations():
         lang = po_file.stem
         mo_path = os.path.join(localedir, lang, "LC_MESSAGES")
         os.makedirs(mo_path, exist_ok=True)
-        mo_file_path = os.path.join(mo_path, "snow-first-setup.mo")
+        mo_file_path = os.path.join(mo_path, "tunaos-first-setup.mo")
         subprocess.run(["msgfmt", "-o", mo_file_path, po_file.absolute()])
 
 def setup_gresource():
-    resource_file = os.path.join(moduledir, "snow-first-setup.gresource")
+    resource_file = os.path.join(moduledir, "tunaos-first-setup.gresource")
     command = ["glib-compile-resources", f"--sourcedir={moduledir}", f"--target={resource_file}", f"{resource_file}.xml"]
     subprocess.run(command, check=True)
 
@@ -45,5 +45,5 @@ if __name__ == '__main__':
     setup_translations()
     setup_gresource()
 
-    from snow_first_setup import main
+    from tunaos_first_setup import main
     sys.exit(main.main(VERSION, moduledir, localedir))

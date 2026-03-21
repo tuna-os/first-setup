@@ -1,4 +1,4 @@
-project('org.frostyard.FirstSetup',
+project('org.tunaos.FirstSetup',
           version: 'VTESTING',
     meson_version: '>= 0.59.0',
   default_options: [ 'warning_level=2',
@@ -11,7 +11,7 @@ i18n = import('i18n')
 gnome = import('gnome')
 
 subdir('data')
-subdir('snow_first_setup')
+subdir('tunaos_first_setup')
 subdir('po')
 
 gnome.post_install(

@@ -148,6 +148,7 @@ if [ "$FDE" != "true" ] || [ "$TPM2" == "true" ]; then
         --wipe \
         --filesystem "$FS_TYPE" \
         --block-setup "$BLOCK_SETUP" \
+        --experimental-unified-storage \
         ${BOOTC_SELINUX_FLAG} \
         "$DEVICE" 2>&1
 
@@ -261,6 +262,7 @@ progress_step "$INSTALL_STEP" "$TOTAL_STEPS" "Installing TunaOS (this may take a
 # shellcheck disable=SC2086
 bootc install to-filesystem \
     --source-imgref "$IMAGE" \
+    --experimental-unified-storage \
     ${BOOTC_SELINUX_FLAG} \
     "$MOUNT"
 

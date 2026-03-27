@@ -16,33 +16,34 @@ try:
         lines = file.readlines()
 except FileNotFoundError:
     lines = _FALLBACK_SUPPORTED.splitlines(keepends=True)
-    for line in lines:
-        parts = line.split(" ")
-        if len(parts) < 2 or "UTF-8" not in parts[1]:
-            continue
-        loc = parts[0]
-        lang_with_country = loc.split(".")[0].split("_")
-        lang = lang_with_country[0]
-        if len(lang_with_country) < 2:
-            continue
-        country_code = lang_with_country[1].split("@")[0]
-        if country_code not in tz.all_country_codes:
-            continue
 
-        region = tz.region_from_country_code(country_code)
-        if region not in all_regions:
-            all_regions.append(region)
-            country_codes_by_region[region] = []
-        if country_code not in country_codes_by_region[region]:
-            country_codes_by_region[region].append(country_code)
+for line in lines:
+    parts = line.split(" ")
+    if len(parts) < 2 or "UTF-8" not in parts[1]:
+        continue
+    loc = parts[0]
+    lang_with_country = loc.split(".")[0].split("_")
+    lang = lang_with_country[0]
+    if len(lang_with_country) < 2:
+        continue
+    country_code = lang_with_country[1].split("@")[0]
+    if country_code not in tz.all_country_codes:
+        continue
 
-        if country_code not in all_country_codes:
-            all_country_codes.append(country_code)
-            locales_by_country_code[country_code] = []
-        if loc not in locales_by_country_code[country_code]:
-            locales_by_country_code[country_code].append(loc)
+    region = tz.region_from_country_code(country_code)
+    if region not in all_regions:
+        all_regions.append(region)
+        country_codes_by_region[region] = []
+    if country_code not in country_codes_by_region[region]:
+        country_codes_by_region[region].append(country_code)
 
-        all_locales.append(loc)
+    if country_code not in all_country_codes:
+        all_country_codes.append(country_code)
+        locales_by_country_code[country_code] = []
+    if loc not in locales_by_country_code[country_code]:
+        locales_by_country_code[country_code].append(loc)
+
+    all_locales.append(loc)
 
 def country_code_from_locale(loc):
     for country_code, loc_list in locales_by_country_code.items():

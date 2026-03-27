@@ -150,7 +150,8 @@ class VanillaInstallProgress(Adw.Bin):
         fde_passphrase = getattr(self.__window, "install_fde_passphrase", None) or ""
         tpm_enabled = getattr(self.__window, "install_tpm_enabled", False)
         target_imgref = getattr(self.__window, "install_target_imgref", None) or ""
-        print("[DEBUG] __run_install params:", image, device, fs, "fde_enabled:", fde_enabled, "tpm_enabled:", tpm_enabled, "target_imgref:", target_imgref)
+        hostname = getattr(self.__window, "install_hostname", None) or ""
+        print("[DEBUG] __run_install params:", image, device, fs, "fde_enabled:", fde_enabled, "tpm_enabled:", tpm_enabled, "target_imgref:", target_imgref, "hostname:", hostname)
 
         if not device or not fs or not image:
             GLib.idle_add(self.__mark_finished, False, _("Missing installation parameters."))
@@ -158,7 +159,7 @@ class VanillaInstallProgress(Adw.Bin):
 
         GLib.idle_add(self.detail_label.set_text, _("Preparing installation…"))
 
-        # Build script arguments: image, device, filesystem, fde, passphrase, tpm2, target_imgref
+        # Build script arguments: image, device, filesystem, fde, passphrase, tpm2, target_imgref, hostname
         script_args = [
             image,
             device,
@@ -167,6 +168,7 @@ class VanillaInstallProgress(Adw.Bin):
             fde_passphrase if fde_enabled else "",
             "true" if (fde_enabled and tpm_enabled) else "false",
             target_imgref,  # 7th arg: upstream ref for update tracking
+            hostname,        # 8th arg: desired hostname for installed system
         ]
 
         # Use streaming script runner to get real-time JSON updates

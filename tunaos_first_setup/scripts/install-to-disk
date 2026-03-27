@@ -48,6 +48,7 @@ FDE="${4:-false}"
 PASSPHRASE="${5:-}"
 TPM2="${6:-false}"
 TARGET_IMGREF="${7:-}"
+HOSTNAME_ARG="${8:-}"
 
 if ! [ -b "$DEVICE" ]; then
     progress_error "Device '${DEVICE}' is not a valid block device"
@@ -135,6 +136,15 @@ cleanup() {
 }
 trap cleanup EXIT
 
+# Write /etc/hostname to an already-mounted installed root
+__apply_hostname() {
+    local mnt="$1"
+    if [ -n "$HOSTNAME_ARG" ] && [ -d "$mnt/etc" ]; then
+        echo "$HOSTNAME_ARG" > "${mnt}/etc/hostname"
+    fi
+}
+
+
 # ══════════════════════════════════════════════════════════════════════════════
 # FAST PATH: no FDE passphrase, no btrfs subvolumes
 # → delegate entirely to `bootc install to-disk` for the simplest/most reliable
@@ -170,6 +180,29 @@ if [ "$FDE" != "true" ] || [ "$TPM2" == "true" ]; then
     fi
 
     progress_step "$STEPS" "$STEPS" "Installation complete"
+
+    # Apply hostname to the installed root (fast path: re-mount root partition)
+    if [ -n "$HOSTNAME_ARG" ]; then
+        _FP_PREFIX="$DEVICE"
+        if [[ "$DEVICE" == *"nvme"* || "$DEVICE" == *"mmcblk"* || "$DEVICE" == *"loop"* ]]; then
+            _FP_PREFIX="${DEVICE}p"
+        fi
+        _FP_ROOT=""
+        for _try in "${_FP_PREFIX}3" "${_FP_PREFIX}2"; do
+            if [ -b "$_try" ]; then
+                _FP_ROOT="$_try"
+                break
+            fi
+        done
+        if [ -n "$_FP_ROOT" ]; then
+            mkdir -p /tmp/hn_mount
+            if mount "$_FP_ROOT" /tmp/hn_mount 2>/dev/null; then
+                __apply_hostname /tmp/hn_mount
+                umount /tmp/hn_mount 2>/dev/null || true
+            fi
+        fi
+    fi
+
     progress_complete
     exit 0
 fi
@@ -291,6 +324,7 @@ else
 fi
 progress_step "$FINAL_STEP" "$TOTAL_STEPS" "Finalizing"
 
+__apply_hostname "$MOUNT"
 sync
 umount -R "$MOUNT"
 

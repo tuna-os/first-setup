@@ -4,14 +4,15 @@ set -euo pipefail
 # TunaOS installer — bootc-based disk installation
 # Outputs JSON Lines for streaming progress to the installer GUI
 #
-# Usage: install-to-disk <image> <device> <filesystem> [fde] [passphrase] [tpm2]
-#   image       - container image reference (containers-storage:localhost/...)
-#   device      - block device path (/dev/sdX, /dev/nvme0n1, etc.)
-#   filesystem  - filesystem type (xfs, btrfs, ext4)
-#               - "btrfs-subvols" enables btrfs with @, @home, @snapshots subvolumes
-#   fde         - "true" or "false" for full disk encryption (default: false)
-#   passphrase  - encryption passphrase (required if fde=true, not tpm2-only)
-#   tpm2        - "true" or "false" for TPM2 auto-unlock (default: false)
+# Usage: install-to-disk <image> <device> <filesystem> [fde] [passphrase] [tpm2] [target_imgref]
+#   image        - container image reference (containers-storage:localhost/...)
+#   device       - block device path (/dev/sdX, /dev/nvme0n1, etc.)
+#   filesystem   - filesystem type (xfs, btrfs, ext4)
+#                - "btrfs-subvols" enables btrfs with @, @home, @snapshots subvolumes
+#   fde          - "true" or "false" for full disk encryption (default: false)
+#   passphrase   - encryption passphrase (required if fde=true, not tpm2-only)
+#   tpm2         - "true" or "false" for TPM2 auto-unlock (default: false)
+#   target_imgref - upstream image ref for update tracking (e.g. ghcr.io/tuna-os/yellowfin:gnome-hwe)
 
 # ── JSON progress helpers ──────────────────────────────────────────────────────
 
@@ -31,7 +32,7 @@ progress_complete() {
 # ── Argument validation ────────────────────────────────────────────────────────
 
 if [ -z "${1:-}" ] || [ -z "${2:-}" ] || [ -z "${3:-}" ]; then
-    progress_error "Missing arguments. Usage: install-to-disk <image> <device> <filesystem> [fde] [passphrase] [tpm2]"
+    progress_error "Missing arguments. Usage: install-to-disk <image> <device> <filesystem> [fde] [passphrase] [tpm2] [target_imgref]"
     exit 5
 fi
 
@@ -46,6 +47,7 @@ FILESYSTEM="$3"
 FDE="${4:-false}"
 PASSPHRASE="${5:-}"
 TPM2="${6:-false}"
+TARGET_IMGREF="${7:-}"
 
 if ! [ -b "$DEVICE" ]; then
     progress_error "Device '${DEVICE}' is not a valid block device"
@@ -65,6 +67,16 @@ fi
 if [ "$FDE" == "true" ] && [ "$TPM2" != "true" ] && [ -z "$PASSPHRASE" ]; then
     progress_error "FDE is enabled but no passphrase provided (and TPM2 is off)"
     exit 10
+fi
+
+# Auto-detect upstream target ref if not supplied
+if [ -z "$TARGET_IMGREF" ]; then
+    if [ -f /run/tunaos-installer/target-imgref ]; then
+        TARGET_IMGREF=$(cat /run/tunaos-installer/target-imgref)
+    else
+        TARGET_IMGREF=$(podman inspect "$IMAGE" --format '{{range .RepoTags}}{{.}}\n{{end}}' 2>/dev/null \
+            | grep -v '^localhost/' | grep -v '^$' | head -1 || true)
+    fi
 fi
 
 # Normalise filesystem: btrfs-subvols is btrfs + subvolume layout
@@ -142,6 +154,8 @@ if [ "$FDE" != "true" ] || [ "$TPM2" == "true" ]; then
 
     progress_step 1 "$STEPS" "Preparing disk"
 
+    TARGET_ARGS=""
+    [ -n "$TARGET_IMGREF" ] && TARGET_ARGS="--target-imgref $TARGET_IMGREF"
     # shellcheck disable=SC2086
     bootc install to-disk \
         --source-imgref "$IMAGE" \
@@ -149,6 +163,7 @@ if [ "$FDE" != "true" ] || [ "$TPM2" == "true" ]; then
         --filesystem "$FS_TYPE" \
         --block-setup "$BLOCK_SETUP" \
         ${BOOTC_SELINUX_FLAG} \
+        $TARGET_ARGS \
         "$DEVICE" 2>&1
 
     if [ "$BLOCK_SETUP" == "tpm2-luks" ]; then
@@ -258,10 +273,13 @@ else
 fi
 progress_step "$INSTALL_STEP" "$TOTAL_STEPS" "Installing TunaOS (this may take a few minutes)"
 
+TARGET_ARGS2=""
+[ -n "$TARGET_IMGREF" ] && TARGET_ARGS2="--target-imgref $TARGET_IMGREF"
 # shellcheck disable=SC2086
 bootc install to-filesystem \
     --source-imgref "$IMAGE" \
     ${BOOTC_SELINUX_FLAG} \
+    $TARGET_ARGS2 \
     "$MOUNT"
 
 # ── Final step: Finalize ──────────────────────────────────────────────────────

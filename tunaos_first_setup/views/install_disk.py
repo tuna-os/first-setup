@@ -158,6 +158,36 @@ class VanillaInstallDisk(Adw.Bin):
             self.__window.install_tpm_enabled = False
         return True
 
+    def _get_live_boot_disk(self):
+        """Return the /dev/<disk> path that the live ISO is booted from, or None."""
+        try:
+            proc = subprocess.run(
+                ["findmnt", "-n", "-o", "SOURCE", "/run/initramfs/live"],
+                capture_output=True, text=True
+            )
+            source = proc.stdout.strip()  # e.g. /dev/sda1
+            if source and source.startswith("/dev/"):
+                proc2 = subprocess.run(
+                    ["lsblk", "-no", "PKNAME", source],
+                    capture_output=True, text=True
+                )
+                pkname = proc2.stdout.strip()
+                return f"/dev/{pkname}" if pkname else source
+        except Exception:
+            pass
+        return None
+
+    @staticmethod
+    def _is_internal(disk: dict) -> bool:
+        """Return True if the disk appears to be an internal (non-removable) drive."""
+        tran = (disk.get("tran") or "").lower()
+        hotplug = disk.get("hotplug", False)
+        if tran in ("nvme", "sata", "ata"):
+            return True
+        if tran == "mmc" and not hotplug:
+            return True
+        return False
+
     def refresh_drives(self):
         # Clear previous rows
         for (action_row, _radio) in self.__rows:
@@ -166,22 +196,46 @@ class VanillaInstallDisk(Adw.Bin):
         self.__selected_device = None
 
         try:
-            proc = subprocess.run(["lsblk", "-J", "-o", "NAME,SIZE,MODEL,TYPE,PATH"], capture_output=True, text=True, check=True)
+            proc = subprocess.run(
+                ["lsblk", "-J", "-o", "NAME,SIZE,MODEL,TYPE,PATH,TRAN,HOTPLUG"],
+                capture_output=True, text=True, check=True
+            )
             data = json.loads(proc.stdout)
         except Exception:
-            # If lsblk is not available or parsing failed, show empty state
             self.no_disks_label.set_visible(True)
             self.__window.set_ready(False)
             return
 
+        live_disk = self._get_live_boot_disk()
+
         disks = []
         for block in data.get("blockdevices", []):
-            if block.get("type") == "disk":
-                name = block.get("name")
-                path = block.get("path") or f"/dev/{name}"
-                size = block.get("size") or ""
-                model = block.get("model") or ""
-                disks.append({"path": path, "name": name, "size": size, "model": model})
+            if block.get("type") != "disk":
+                continue
+            name = block.get("name", "")
+            path = block.get("path") or f"/dev/{name}"
+            size = block.get("size") or ""
+            model = block.get("model") or ""
+
+            # Skip the disk the live ISO is running from
+            if live_disk and path == live_disk:
+                continue
+            # Skip zero-size devices (empty card readers, etc.)
+            if size in ("", "0", "0B"):
+                continue
+
+            disks.append({
+                "path": path,
+                "name": name,
+                "size": size,
+                "model": model,
+                "tran": block.get("tran") or "",
+                "hotplug": block.get("hotplug", False),
+                "internal": self._is_internal(block),
+            })
+
+        # Sort: internal disks first, then external
+        disks.sort(key=lambda d: (0 if d["internal"] else 1, d["path"]))
 
         if not disks:
             self.no_disks_label.set_visible(True)
@@ -191,16 +245,21 @@ class VanillaInstallDisk(Adw.Bin):
         self.no_disks_label.set_visible(False)
 
         first_radio = None
+        auto_select_radio = None
+        auto_select_path = None
+
         for disk in disks:
-            title = f"{disk['path']} — {disk['size']}"
-            subtitle = disk['model'] or ""
+            tran = disk["tran"].upper() if disk["tran"] else ""
+            label = f"{disk['path']} — {disk['size']}"
+            if tran:
+                label += f"  ({tran})"
+            subtitle = disk["model"] or ""
 
             action_row = Adw.ActionRow()
-            action_row.set_title(title)
+            action_row.set_title(label)
             if subtitle:
                 action_row.set_subtitle(subtitle)
 
-            # create a radio button as prefix so the row is selectable
             radio = Gtk.CheckButton.new()
             radio.set_valign(Gtk.Align.CENTER)
             radio.set_focusable(False)
@@ -208,13 +267,22 @@ class VanillaInstallDisk(Adw.Bin):
                 first_radio = radio
             else:
                 radio.set_group(first_radio)
-            radio.connect("toggled", self.__on_radio_toggled, disk['path'])
+            radio.connect("toggled", self.__on_radio_toggled, disk["path"])
 
             action_row.add_prefix(radio)
             action_row.set_activatable_widget(radio)
 
             self.disks_group.add(action_row)
             self.__rows.append((action_row, radio))
+
+            # Pre-select the first internal disk (or first disk if none internal)
+            if auto_select_radio is None and (disk["internal"] or len(disks) == 1):
+                auto_select_radio = radio
+                auto_select_path = disk["path"]
+
+        if auto_select_radio is None and self.__rows:
+            auto_select_radio, _ = self.__rows[0]
+            auto_select_path = disks[0]["path"]
 
         # Ensure filesystem combobox has a default
         try:
@@ -223,8 +291,15 @@ class VanillaInstallDisk(Adw.Bin):
         except Exception:
             pass
 
-        # Allow the window to continue (user can press next after selecting)
-        self.__window.set_ready(False)
+        # Auto-select and activate the pre-selected disk
+        if auto_select_radio is not None:
+            auto_select_radio.set_active(True)
+            self.__selected_device = auto_select_path
+            for (row, r) in self.__rows:
+                if r is auto_select_radio:
+                    row.add_css_class("selected")
+
+        self.__update_ready_state()
         return
 
     def __on_row_activated(self, widget, path):

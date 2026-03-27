@@ -1,7 +1,7 @@
 # install_confirm.py
 #
 # Confirmation step for install mode.
-# Auto-detects the image from os-release / image-info.json.
+# Auto-detects the image from podman storage.
 
 import json
 import os
@@ -44,21 +44,14 @@ class VanillaInstallConfirm(Adw.Bin):
             self.__confirm_row = None
 
     def __detect_image(self):
-        """Return the containers-storage ref to install from."""
+        """Return the containers-storage ref to install from.
+
+        Scans podman storage for a tuna-os/ image visible via unified storage
+        (bootc images are directly accessible in podman's container storage).
+        """
         import subprocess
-        # Prefer the copy-to-storage image (always available after service runs)
+        import json as _json
         try:
-            result = subprocess.run(
-                ["podman", "image", "exists", "localhost/bootc"],
-                capture_output=True
-            )
-            if result.returncode == 0:
-                return "containers-storage:localhost/bootc"
-        except Exception:
-            pass
-        # Fall back: look for image by variant in local storage
-        try:
-            import json as _json
             result = subprocess.run(
                 ["podman", "images", "--format", "json"],
                 capture_output=True, text=True
@@ -73,29 +66,14 @@ class VanillaInstallConfirm(Adw.Bin):
         return None
 
     def __detect_target_imgref(self):
-        """Return the upstream docker:// ref for update tracking."""
-        import subprocess
-        # Read from file written by bootc-copy-to-storage.service
-        try:
-            with open("/run/tunaos-installer/target-imgref") as f:
-                ref = f.read().strip()
-            if ref:
-                return ref
-        except (FileNotFoundError, OSError):
-            pass
-        # Fall back: inspect localhost/bootc for non-localhost tags
-        try:
-            result = subprocess.run(
-                ["podman", "inspect", "localhost/bootc",
-                 "--format", "{{range .RepoTags}}{{.}}\n{{end}}"],
-                capture_output=True, text=True
-            )
-            for line in result.stdout.splitlines():
-                line = line.strip()
-                if line and not line.startswith("localhost/"):
-                    return line
-        except Exception:
-            pass
+        """Return the upstream ref for --target-imgref (no transport prefix).
+
+        Since the image is already in podman storage as its upstream ref
+        (e.g. ghcr.io/tuna-os/yellowfin:gnome-hwe), strip containers-storage:
+        to get the bare ref bootc expects for update tracking.
+        """
+        if self.__image_ref and "localhost/" not in self.__image_ref:
+            return self.__image_ref.replace("containers-storage:", "", 1)
         return None
 
     def set_page_active(self):
@@ -121,7 +99,7 @@ class VanillaInstallConfirm(Adw.Bin):
         if getattr(self, 'image_label', None) is not None:
             if self.__image_ref:
                 # Display a friendly version of the ref
-                display = self.__image_ref.replace("containers-storage:localhost/", "")
+                display = self.__image_ref.replace("containers-storage:", "")
                 self.image_label.set_text(display)
             else:
                 self.image_label.set_text(_("Auto-detected"))

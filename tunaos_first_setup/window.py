@@ -144,26 +144,22 @@ class VanillaWindow(Adw.ApplicationWindow):
         elif install_mode:
             print("Building install mode UI.")
             from tunaos_first_setup.views.welcome_install import VanillaWelcomeInstall
-            from tunaos_first_setup.views.language import VanillaLanguage
-            from tunaos_first_setup.views.keyboard import VanillaKeyboard
             from tunaos_first_setup.views.install_disk import VanillaInstallDisk
             from tunaos_first_setup.views.install_confirm import VanillaInstallConfirm
             from tunaos_first_setup.views.install_progress import VanillaInstallProgress
             from tunaos_first_setup.views.install_done import VanillaInstallDone
 
+            # Language and keyboard are intentionally omitted from the disk
+            # installer — gnome-initial-setup (GNOME) and first-setup configure
+            # mode (niri/KDE) handle locale setup on first boot after install.
 
             self.__view_welcome = VanillaWelcomeInstall(self)
             self.__view_welcome.no_next_button = True
             self.__view_welcome.no_back_button = True
-            self.__view_language = VanillaLanguage(self)
-            self.__view_language.no_back_button = True
-            self.__view_keyboard = VanillaKeyboard(self)
             self.__view_installdisk = VanillaInstallDisk(self)
             self.__view_installconfirm = VanillaInstallConfirm(self)
 
             self.pages.append(self.__view_welcome)
-            self.pages.append(self.__view_language)
-            self.pages.append(self.__view_keyboard)
             self.pages.append(self.__view_installdisk)
             self.__view_installprogress = VanillaInstallProgress(self)
             self.__view_installprogress.no_back_button = True

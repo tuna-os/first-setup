@@ -20,6 +20,7 @@ class VanillaInstallConfirm(Adw.Bin):
     device_label = Gtk.Template.Child()
     fs_label = Gtk.Template.Child()
     fde_label = Gtk.Template.Child()
+    hostname_label = Gtk.Template.Child()
     image_label = Gtk.Template.Child()
     confirm_checkbox = Gtk.Template.Child()
     cancel_button = Gtk.Template.Child()
@@ -77,6 +78,11 @@ class VanillaInstallConfirm(Adw.Bin):
         return None
 
     def set_page_active(self):
+        hostname = getattr(self.__window, 'install_hostname', '')
+        try:
+            self.hostname_label.set_label(hostname or _('(not set)'))
+        except Exception:
+            pass
         device = getattr(self.__window, "install_target_device", None)
         fs = getattr(self.__window, "install_target_fs", None)
         fde_enabled = getattr(self.__window, "install_fde_enabled", False)

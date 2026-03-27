@@ -21,6 +21,7 @@ class VanillaInstallConfirm(Adw.Bin):
     fs_label = Gtk.Template.Child()
     fde_label = Gtk.Template.Child()
     image_label = Gtk.Template.Child()
+    confirm_row = Gtk.Template.Child()
     confirm_checkbox = Gtk.Template.Child()
     cancel_button = Gtk.Template.Child()
 
@@ -119,6 +120,7 @@ class VanillaInstallConfirm(Adw.Bin):
 
         try:
             self.confirm_checkbox.set_active(False)
+            self.confirm_row.add_css_class("warning")
         except Exception:
             pass
         self.__confirm_checked = False
@@ -132,6 +134,14 @@ class VanillaInstallConfirm(Adw.Bin):
             self.__confirm_checked = self.confirm_checkbox.get_active()
         except Exception:
             self.__confirm_checked = False
+        # Apply/remove warning highlight based on checkbox state
+        try:
+            if self.__confirm_checked:
+                self.confirm_row.remove_css_class("warning")
+            else:
+                self.confirm_row.add_css_class("warning")
+        except Exception:
+            pass
         self.__validate()
 
     def __validate(self):

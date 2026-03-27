@@ -3,6 +3,7 @@
 # Screen to select the physical disk to install to.
 
 import json
+import os
 import subprocess
 
 from gi.repository import Gtk, GLib, Adw
@@ -207,11 +208,17 @@ class VanillaInstallDisk(Adw.Bin):
             return
 
         live_disk = self._get_live_boot_disk()
+        dev_mode = os.environ.get("TUNAOS_INSTALLER_DEV", "") == "1"
 
         disks = []
         for block in data.get("blockdevices", []):
-            if block.get("type") != "disk":
-                continue
+            btype = block.get("type", "")
+            if dev_mode:
+                if btype not in ("disk", "loop"):
+                    continue
+            else:
+                if btype != "disk":
+                    continue
             name = block.get("name", "")
             path = block.get("path") or f"/dev/{name}"
             size = block.get("size") or ""
@@ -224,6 +231,7 @@ class VanillaInstallDisk(Adw.Bin):
             if size in ("", "0", "0B"):
                 continue
 
+            is_loop = btype == "loop"
             disks.append({
                 "path": path,
                 "name": name,
@@ -232,6 +240,7 @@ class VanillaInstallDisk(Adw.Bin):
                 "tran": block.get("tran") or "",
                 "hotplug": block.get("hotplug", False),
                 "internal": self._is_internal(block),
+                "is_loop": is_loop,
             })
 
         # Sort: internal disks first, then external
@@ -251,7 +260,9 @@ class VanillaInstallDisk(Adw.Bin):
         for disk in disks:
             tran = disk["tran"].upper() if disk["tran"] else ""
             label = f"{disk['path']} — {disk['size']}"
-            if tran:
+            if disk.get("is_loop"):
+                label += "  [DEV: loopback]"
+            elif tran:
                 label += f"  ({tran})"
             subtitle = disk["model"] or ""
 

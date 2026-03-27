@@ -1,47 +1,121 @@
 #!/bin/bash
-# dev-install — run the TunaOS GUI installer against a loopback device
+# dev-install — test the TunaOS installer non-interactively against a loopback device.
 #
-# Creates a sparse raw disk image, attaches it as a loop device, then
-# launches tunaos-first-setup in install mode with TUNAOS_INSTALLER_DEV=1
-# so the loop device appears in the disk selection screen.
+# Runs install-to-disk from INSIDE the image container via podman run --privileged.
+# This is required because bootc install needs to see only its own OSTree commit;
+# on a dev machine with unified storage the host sees multiple commits and fails
+# with "Multiple commit objects found".
 #
-# Usage:
-#   sudo scripts/dev-install [image-size] [output-file]
-#   sudo scripts/dev-install 20G /tmp/my-dev.img
+# For GUI testing, set TUNAOS_INSTALLER_GUI=1 — this creates the loopback device on
+# the host and launches tunaos-first-setup --install with TUNAOS_INSTALLER_DEV=1 so
+# the loop device appears in the disk list.
 #
-# After install, the raw image can be booted with QEMU:
-#   qemu-system-x86_64 -m 4G -enable-kvm -hda /tmp/tunaos-dev.img
+# Usage (non-interactive, default):
+#   sudo scripts/dev-install [image-ref] [size] [output-file] [filesystem] [hostname]
+#   sudo scripts/dev-install ghcr.io/tuna-os/yellowfin:gnome-hwe 20G /tmp/tunaos-dev.img
+#
+# Usage (GUI mode):
+#   sudo TUNAOS_INSTALLER_GUI=1 scripts/dev-install [size] [output-file]
+#
+# After install, boot the raw image with QEMU:
+#   qemu-system-x86_64 -m 4G -enable-kvm -drive file=/tmp/tunaos-dev.img,format=raw
 
 set -euo pipefail
 
-SIZE="${1:-20G}"
-IMG="${2:-/tmp/tunaos-dev.img}"
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+
+# ── GUI mode ──────────────────────────────────────────────────────────────────
+if [[ "${TUNAOS_INSTALLER_GUI:-0}" == "1" ]]; then
+    SIZE="${1:-20G}"
+    IMG="${2:-/tmp/tunaos-dev.img}"
+
+    if [[ $EUID -ne 0 ]]; then
+        echo "Error: dev-install must be run as root (loop device creation requires root)." >&2
+        exit 1
+    fi
+
+    echo "==> Creating ${SIZE} sparse image at ${IMG}..."
+    truncate -s "$SIZE" "$IMG"
+
+    LOOP=$(losetup --find --show "$IMG")
+    echo "==> Loop device: $LOOP"
+
+    cleanup_gui() { losetup -d "$LOOP" 2>/dev/null || true; }
+    trap cleanup_gui EXIT
+
+    echo "==> Launching GUI installer (TUNAOS_INSTALLER_DEV=1)..."
+    echo "    Select '$LOOP' in the disk list."
+    TUNAOS_INSTALLER_DEV=1 tunaos-first-setup --install
+    echo "==> Done. Raw image: $IMG"
+    exit 0
+fi
+
+# ── Non-interactive mode (default) ────────────────────────────────────────────
+IMAGE="${1:-ghcr.io/tuna-os/yellowfin:gnome-hwe}"
+SIZE="${2:-20G}"
+IMG="${3:-/tmp/tunaos-dev.img}"
+FS="${4:-xfs}"
+HOSTNAME_ARG="${5:-yellowfin-dev}"
+IMG_ABS="$(realpath "$IMG")"
+INSTALL_SCRIPT="${SCRIPT_DIR}/install-to-disk"
 
 if [[ $EUID -ne 0 ]]; then
-    echo "Error: dev-install must be run as root (it creates loop devices)." >&2
+    echo "Error: dev-install must be run as root." >&2
     exit 1
 fi
 
-echo "==> Creating ${SIZE} sparse image at ${IMG}..."
+echo "==> Image:    $IMAGE"
+echo "==> Size:     $SIZE  →  $IMG"
+echo "==> FS:       $FS"
+echo "==> Hostname: $HOSTNAME_ARG"
+echo ""
+
+echo "==> Creating ${SIZE} sparse image..."
 truncate -s "$SIZE" "$IMG"
 
-echo "==> Attaching loop device..."
-LOOP=$(losetup --find --show "$IMG")
-echo "    Loop device: $LOOP"
+echo "==> Pulling image if not already present..."
+podman pull "$IMAGE" 2>/dev/null || true
 
-cleanup() {
-    echo "==> Detaching loop device $LOOP..."
-    losetup -d "$LOOP" 2>/dev/null || true
-}
-trap cleanup EXIT
+echo "==> Running install-to-disk inside container (avoids 'Multiple commit objects found')..."
 
-echo "==> Launching installer in dev mode (TUNAOS_INSTALLER_DEV=1)..."
-echo "    Select '$LOOP' in the disk list to install to the raw image."
+# The raw image file is mapped into the container; losetup is run inside so
+# bootc sees only the single image's OSTree commit (not the full host storage).
+podman run \
+    --rm \
+    --privileged \
+    --pid=host \
+    -v /dev:/dev \
+    -v /var/lib/containers:/var/lib/containers \
+    -v "${IMG_ABS}:/tunaos-dev.img" \
+    -v "${INSTALL_SCRIPT}:/usr/local/bin/install-to-disk:ro" \
+    --security-opt label=disable \
+    "$IMAGE" \
+    bash -euo pipefail -c "
+LOOP=\$(losetup --find --show --partscan /tunaos-dev.img)
+echo \"==> Loop inside container: \$LOOP\"
+trap 'losetup -d \$LOOP 2>/dev/null || true' EXIT
+# Override containers-storage config so it uses the mounted host storage
+# directly at /var/lib/containers/storage rather than the unified storage
+# overlay path (/run/bootc/storage) which doesn't exist inside a container.
+mkdir -p /etc/containers /run/containers/storage
+cat > /etc/containers/storage.conf << 'STORAGECFG'
+[storage]
+driver = \"overlay\"
+graphroot = \"/var/lib/containers/storage\"
+runroot = \"/run/containers/storage\"
+STORAGECFG
+bash /usr/local/bin/install-to-disk \
+    'containers-storage:${IMAGE}' \
+    \"\$LOOP\" \
+    '${FS}' \
+    false \
+    '' \
+    false \
+    '${IMAGE}' \
+    '${HOSTNAME_ARG}'
+"
+
 echo ""
-
-TUNAOS_INSTALLER_DEV=1 tunaos-first-setup --install
-
-echo ""
-echo "==> Install complete. Raw image: $IMG"
+echo "==> Install complete! Raw image: $IMG"
 echo "==> To boot in QEMU:"
 echo "    qemu-system-x86_64 -m 4G -enable-kvm -drive file=${IMG},format=raw"

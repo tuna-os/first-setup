@@ -45,6 +45,9 @@ class VanillaHostname(Adw.Bin):
         return
 
     def finish(self):
+        if getattr(self.__window, 'install_mode', False):
+            self.__window.install_hostname = self.hostname
+            return True
         return backend.set_hostname(self.hostname)
 
     def __on_activate(self, widget):

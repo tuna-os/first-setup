@@ -81,7 +81,7 @@
                       <object class="AdwPreferencesGroup">
                         <property name="title" translatable="yes">Confirmation</property>
                         <child>
-                          <object class="AdwActionRow">
+                          <object class="AdwActionRow" id="confirm_row">
                             <property name="title" translatable="yes">I understand this will erase all data on the selected disk</property>
                             <property name="activatable-widget">confirm_checkbox</property>
                             <child type="prefix">
@@ -89,6 +89,9 @@
                                 <property name="valign">center</property>
                               </object>
                             </child>
+                            <style>
+                              <class name="warning"/>
+                            </style>
                           </object>
                         </child>
                       </object>

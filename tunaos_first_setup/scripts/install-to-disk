@@ -50,6 +50,13 @@ TPM2="${6:-false}"
 TARGET_IMGREF="${7:-}"
 HOSTNAME_ARG="${8:-}"
 
+# --experimental-unified-storage only works in a real bootc-booted system where
+# the ostree sysroot exists. Skip it when running inside a container (dev mode).
+UNIFIED_STORAGE_FLAG=""
+if [ -f /run/ostree-booted ]; then
+    UNIFIED_STORAGE_FLAG="--experimental-unified-storage"
+fi
+
 if ! [ -b "$DEVICE" ]; then
     progress_error "Device '${DEVICE}' is not a valid block device"
     exit 9
@@ -170,7 +177,7 @@ if [ "$FDE" != "true" ] || [ "$TPM2" == "true" ]; then
         --wipe \
         --filesystem "$FS_TYPE" \
         --block-setup "$BLOCK_SETUP" \
-        --experimental-unified-storage \
+        ${UNIFIED_STORAGE_FLAG:+--experimental-unified-storage} \
         ${BOOTC_SELINUX_FLAG} \
         $TARGET_ARGS \
         "$DEVICE" 2>&1
@@ -310,7 +317,7 @@ TARGET_ARGS2=""
 # shellcheck disable=SC2086
 bootc install to-filesystem \
     --source-imgref "$IMAGE" \
-    --experimental-unified-storage \
+    ${UNIFIED_STORAGE_FLAG:+--experimental-unified-storage} \
     ${BOOTC_SELINUX_FLAG} \
     $TARGET_ARGS2 \
     "$MOUNT"

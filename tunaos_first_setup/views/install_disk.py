@@ -160,8 +160,8 @@ class VanillaInstallDisk(Adw.Bin):
 
     def refresh_drives(self):
         # Clear previous rows
-        for row in self.__rows:
-            row.destroy()
+        for (action_row, _radio) in self.__rows:
+            self.disks_group.remove(action_row)
         self.__rows = []
         self.__selected_device = None
 

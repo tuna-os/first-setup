@@ -70,13 +70,11 @@ if [ "$FDE" == "true" ] && [ "$TPM2" != "true" ] && [ -z "$PASSPHRASE" ]; then
 fi
 
 # Auto-detect upstream target ref if not supplied
+# Strip containers-storage: prefix so podman inspect gets a bare image ref
 if [ -z "$TARGET_IMGREF" ]; then
-    if [ -f /run/tunaos-installer/target-imgref ]; then
-        TARGET_IMGREF=$(cat /run/tunaos-installer/target-imgref)
-    else
-        TARGET_IMGREF=$(podman inspect "$IMAGE" --format '{{range .RepoTags}}{{.}}\n{{end}}' 2>/dev/null \
-            | grep -v '^localhost/' | grep -v '^$' | head -1 || true)
-    fi
+    _inspect_ref="${IMAGE#containers-storage:}"
+    TARGET_IMGREF=$(podman inspect "$_inspect_ref" --format '{{range .RepoTags}}{{.}}\n{{end}}' 2>/dev/null \
+        | grep -v '^localhost/' | grep -v '^$' | head -1 || true)
 fi
 
 # Normalise filesystem: btrfs-subvols is btrfs + subvolume layout

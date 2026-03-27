@@ -1,0 +1,47 @@
+#!/bin/bash
+# dev-install — run the TunaOS GUI installer against a loopback device
+#
+# Creates a sparse raw disk image, attaches it as a loop device, then
+# launches tunaos-first-setup in install mode with TUNAOS_INSTALLER_DEV=1
+# so the loop device appears in the disk selection screen.
+#
+# Usage:
+#   sudo scripts/dev-install [image-size] [output-file]
+#   sudo scripts/dev-install 20G /tmp/my-dev.img
+#
+# After install, the raw image can be booted with QEMU:
+#   qemu-system-x86_64 -m 4G -enable-kvm -hda /tmp/tunaos-dev.img
+
+set -euo pipefail
+
+SIZE="${1:-20G}"
+IMG="${2:-/tmp/tunaos-dev.img}"
+
+if [[ $EUID -ne 0 ]]; then
+    echo "Error: dev-install must be run as root (it creates loop devices)." >&2
+    exit 1
+fi
+
+echo "==> Creating ${SIZE} sparse image at ${IMG}..."
+truncate -s "$SIZE" "$IMG"
+
+echo "==> Attaching loop device..."
+LOOP=$(losetup --find --show "$IMG")
+echo "    Loop device: $LOOP"
+
+cleanup() {
+    echo "==> Detaching loop device $LOOP..."
+    losetup -d "$LOOP" 2>/dev/null || true
+}
+trap cleanup EXIT
+
+echo "==> Launching installer in dev mode (TUNAOS_INSTALLER_DEV=1)..."
+echo "    Select '$LOOP' in the disk list to install to the raw image."
+echo ""
+
+TUNAOS_INSTALLER_DEV=1 tunaos-first-setup --install
+
+echo ""
+echo "==> Install complete. Raw image: $IMG"
+echo "==> To boot in QEMU:"
+echo "    qemu-system-x86_64 -m 4G -enable-kvm -drive file=${IMG},format=raw"

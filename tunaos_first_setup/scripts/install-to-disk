@@ -160,6 +160,7 @@ if [ "$FDE" != "true" ] || [ "$TPM2" == "true" ]; then
         --wipe \
         --filesystem "$FS_TYPE" \
         --block-setup "$BLOCK_SETUP" \
+        --experimental-unified-storage \
         ${BOOTC_SELINUX_FLAG} \
         $TARGET_ARGS \
         "$DEVICE" 2>&1
@@ -276,6 +277,7 @@ TARGET_ARGS2=""
 # shellcheck disable=SC2086
 bootc install to-filesystem \
     --source-imgref "$IMAGE" \
+    --experimental-unified-storage \
     ${BOOTC_SELINUX_FLAG} \
     $TARGET_ARGS2 \
     "$MOUNT"

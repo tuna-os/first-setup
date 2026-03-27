@@ -29,6 +29,7 @@ class VanillaInstallConfirm(Adw.Bin):
         self.__window = window
         self.__confirm_checked = False
         self.__image_ref = self.__detect_image()
+        self.__target_imgref = self.__detect_target_imgref()
 
         try:
             self.confirm_checkbox.connect("toggled", self.__on_input_changed)
@@ -43,56 +44,58 @@ class VanillaInstallConfirm(Adw.Bin):
             self.__confirm_row = None
 
     def __detect_image(self):
-        """Auto-detect the container image reference for installation.
+        """Return the containers-storage ref to install from."""
+        import subprocess
+        # Prefer the copy-to-storage image (always available after service runs)
+        try:
+            result = subprocess.run(
+                ["podman", "image", "exists", "localhost/bootc"],
+                capture_output=True
+            )
+            if result.returncode == 0:
+                return "containers-storage:localhost/bootc"
+        except Exception:
+            pass
+        # Fall back: look for image by variant in local storage
+        try:
+            import json as _json
+            result = subprocess.run(
+                ["podman", "images", "--format", "json"],
+                capture_output=True, text=True
+            )
+            images = _json.loads(result.stdout)
+            for img in images:
+                for tag in (img.get("Names") or img.get("RepoTags") or []):
+                    if "tuna-os/" in tag and "localhost/" not in tag:
+                        return f"containers-storage:{tag}"
+        except Exception:
+            pass
+        return None
 
-        Reads VARIANT_ID from os-release and image-flavor from image-info.json
-        to construct the containers-storage ref.
-        """
-        variant_id = None
-        image_flavor = None
-
-        # Read VARIANT_ID from os-release
-        for os_release_path in ["/usr/lib/os-release", "/etc/os-release"]:
-            if os.path.exists(os_release_path):
-                try:
-                    with open(os_release_path, "r") as f:
-                        for line in f:
-                            line = line.strip()
-                            if line.startswith("VARIANT_ID="):
-                                variant_id = line.split("=", 1)[1].strip().strip('"')
-                                break
-                except Exception:
-                    continue
-            if variant_id:
-                break
-
-        # Read image-flavor from image-info.json
-        image_info_path = "/usr/share/ublue-os/image-info.json"
-        if os.path.exists(image_info_path):
-            try:
-                with open(image_info_path, "r") as f:
-                    info = json.load(f)
-                image_flavor = info.get("image-flavor")
-            except Exception:
-                pass
-
-        if variant_id and image_flavor:
-            return f"containers-storage:localhost/{variant_id}:{image_flavor}"
-
-        # Fallback: try to use image-ref from image-info.json
-        if os.path.exists(image_info_path):
-            try:
-                with open(image_info_path, "r") as f:
-                    info = json.load(f)
-                image_ref = info.get("image-ref", "")
-                image_tag = info.get("image-tag", "latest")
-                if image_ref:
-                    ref = image_ref.replace("ostree-image-signed:docker://", "")
-                    ref = ref.replace("docker://", "")
-                    return f"containers-storage:{ref}:{image_tag}"
-            except Exception:
-                pass
-
+    def __detect_target_imgref(self):
+        """Return the upstream docker:// ref for update tracking."""
+        import subprocess
+        # Read from file written by bootc-copy-to-storage.service
+        try:
+            with open("/run/tunaos-installer/target-imgref") as f:
+                ref = f.read().strip()
+            if ref:
+                return ref
+        except (FileNotFoundError, OSError):
+            pass
+        # Fall back: inspect localhost/bootc for non-localhost tags
+        try:
+            result = subprocess.run(
+                ["podman", "inspect", "localhost/bootc",
+                 "--format", "{{range .RepoTags}}{{.}}\n{{end}}"],
+                capture_output=True, text=True
+            )
+            for line in result.stdout.splitlines():
+                line = line.strip()
+                if line and not line.startswith("localhost/"):
+                    return line
+        except Exception:
+            pass
         return None
 
     def set_page_active(self):
@@ -161,6 +164,7 @@ class VanillaInstallConfirm(Adw.Bin):
             return False
 
         self.__window.install_target_image = self.__image_ref
+        self.__window.install_target_imgref = self.__target_imgref
         self.__window.install_root_password = None
         return True
 

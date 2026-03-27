@@ -63,6 +63,19 @@
                         </child>
                         <child>
                           <object class="AdwActionRow">
+                            <property name="title" translatable="yes">Hostname</property>
+                            <child type="suffix">
+                              <object class="GtkLabel" id="hostname_label">
+                                <property name="label">yellowfin</property>
+                                <style>
+                                  <class name="dim-label"/>
+                                </style>
+                              </object>
+                            </child>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="AdwActionRow">
                             <property name="title" translatable="yes">Image</property>
                             <child type="suffix">
                               <object class="GtkLabel" id="image_label">

@@ -145,6 +145,7 @@ class VanillaWindow(Adw.ApplicationWindow):
             print("Building install mode UI.")
             from tunaos_first_setup.views.welcome_install import VanillaWelcomeInstall
             from tunaos_first_setup.views.install_disk import VanillaInstallDisk
+            from tunaos_first_setup.views.hostname import VanillaHostname
             from tunaos_first_setup.views.install_confirm import VanillaInstallConfirm
             from tunaos_first_setup.views.install_progress import VanillaInstallProgress
             from tunaos_first_setup.views.install_done import VanillaInstallDone
@@ -157,10 +158,12 @@ class VanillaWindow(Adw.ApplicationWindow):
             self.__view_welcome.no_next_button = True
             self.__view_welcome.no_back_button = True
             self.__view_installdisk = VanillaInstallDisk(self)
+            self.__view_installhostname = VanillaHostname(self)
             self.__view_installconfirm = VanillaInstallConfirm(self)
 
             self.pages.append(self.__view_welcome)
             self.pages.append(self.__view_installdisk)
+            self.pages.append(self.__view_installhostname)
             self.__view_installprogress = VanillaInstallProgress(self)
             self.__view_installprogress.no_back_button = True
             self.__view_installdone = VanillaInstallDone(self)

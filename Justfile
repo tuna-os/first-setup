@@ -55,3 +55,10 @@ run-install:
     @echo "Running in install mode..."
     python3 test.py -d -i
 
+# Run the GUI installer in dev mode against a loopback device.
+# Creates a sparse raw disk image so the full install flow can be tested
+# without a real disk. Requires root (loop device creation).
+#   SIZE: sparse image size (default 20G)
+#   IMG:  output raw image path (default /tmp/tunaos-dev.img)
+dev-install SIZE="20G" IMG="/tmp/tunaos-dev.img":
+    @sudo scripts/dev-install "{{SIZE}}" "{{IMG}}"

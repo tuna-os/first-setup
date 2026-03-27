@@ -21,7 +21,6 @@ class VanillaInstallConfirm(Adw.Bin):
     fs_label = Gtk.Template.Child()
     fde_label = Gtk.Template.Child()
     image_label = Gtk.Template.Child()
-    confirm_row = Gtk.Template.Child()
     confirm_checkbox = Gtk.Template.Child()
     cancel_button = Gtk.Template.Child()
 
@@ -36,6 +35,12 @@ class VanillaInstallConfirm(Adw.Bin):
             self.cancel_button.connect("clicked", self.__on_cancel_clicked)
         except Exception:
             pass
+        # Find the confirmation row by walking up from the checkbox
+        try:
+            self.__confirm_row = self.confirm_checkbox.get_parent()
+            self.__confirm_row.add_css_class("warning")
+        except Exception:
+            self.__confirm_row = None
 
     def __detect_image(self):
         """Auto-detect the container image reference for installation.
@@ -120,7 +125,7 @@ class VanillaInstallConfirm(Adw.Bin):
 
         try:
             self.confirm_checkbox.set_active(False)
-            self.confirm_row.add_css_class("warning")
+            if self.__confirm_row: self.__confirm_row.add_css_class("warning")
         except Exception:
             pass
         self.__confirm_checked = False
@@ -137,9 +142,9 @@ class VanillaInstallConfirm(Adw.Bin):
         # Apply/remove warning highlight based on checkbox state
         try:
             if self.__confirm_checked:
-                self.confirm_row.remove_css_class("warning")
+                if self.__confirm_row: self.__confirm_row.remove_css_class("warning")
             else:
-                self.confirm_row.add_css_class("warning")
+                if self.__confirm_row: self.__confirm_row.add_css_class("warning")
         except Exception:
             pass
         self.__validate()
